@@ -1,0 +1,102 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// Enum types for SQLite (using String since SQLite doesn't support enums)
+// RefereeType: MESA | PISTA
+// UserRole: USER | ADMIN
+// Gender: MASCULINO | FEMENINO | MIXTO
+
+model User {
+  id            String   @id @default(cuid())
+  licenseNumber String   @unique
+  name          String
+  password      String
+  refereeType   String // MESA | PISTA
+  role          String   @default("USER") // USER | ADMIN
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  matches  Match[]
+  payments Payment[]
+}
+
+model Category {
+  id     String @id @default(cuid())
+  name   String // Benjamín, Alevín, Infantil, Cadete, Junior, Senior
+  gender String // MASCULINO | FEMENINO | MIXTO
+
+  divisions Division[]
+  matches   Match[]
+
+  @@unique([name, gender])
+}
+
+model Division {
+  id         String @id @default(cuid())
+  name       String // Nivel 1ª Zonal, Preferente, Autonómico, etc.
+  level      Int // Numeric level for sorting (higher = better)
+  categoryId String
+
+  category Category @relation(fields: [categoryId], references: [id])
+  matches  Match[]
+
+  @@unique([name, categoryId])
+}
+
+model Match {
+  id           String   @id @default(cuid())
+  matchNumber  String // Number from PDF (e.g., 40484)
+  date         DateTime
+  time         String // Time as string (e.g., "10:00")
+  venue        String // Venue name
+  venueAddress String? // Venue address
+  localTeam    String
+  visitorTeam  String
+  categoryId   String
+  divisionId   String
+  role         String // ARBITRO PRINCIPAL, ANOTADOR, etc.
+  matchday     Int? // Jornada
+  userId       String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user     User     @relation(fields: [userId], references: [id])
+  category Category @relation(fields: [categoryId], references: [id])
+  division Division @relation(fields: [divisionId], references: [id])
+  payment  Payment?
+
+  @@unique([matchNumber, userId])
+}
+
+model Payment {
+  id           String    @id @default(cuid())
+  matchId      String    @unique
+  userId       String
+  matchPayment Float     @default(0) // Payment for the match
+  gasPayment   Float     @default(0) // Payment for gas/travel
+  paidAt       DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  match Match @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id])
+}
+
+// Predefined tariffs by category (optional enhancement)
+model Tariff {
+  id           String  @id @default(cuid())
+  categoryName String // Category name
+  gender       String // Gender
+  divisionName String? // Optional: specific division
+  amount       Float // Default payment amount
+
+  @@unique([categoryName, gender, divisionName])
+}
