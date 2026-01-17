@@ -6,10 +6,11 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
-// Enum types for SQLite (using String since SQLite doesn't support enums)
+// Enum types (simulated with String for simplicity in this migration)
 // RefereeType: MESA | PISTA
 // UserRole: USER | ADMIN
 // Gender: MASCULINO | FEMENINO | MIXTO
