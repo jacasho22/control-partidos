@@ -5,13 +5,13 @@ import { prisma } from '@/lib/prisma';
 
 export async function DELETE(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ message: 'No autorizado' }, { status: 401 });
 
   const userId = (session.user as { id: string }).id;
-  const matchId = params.id;
+  const { id: matchId } = await params;
 
   try {
     // Verificar que el partido pertenece al usuario
