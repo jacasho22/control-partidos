@@ -25,6 +25,7 @@ export async function GET() {
         nextMatch: null,
         recentMatches: [],
         weeklyEarnings: 0,
+        totalEarnings: 0,
         topCategory: '-',
         totalMatches: 0,
       });
