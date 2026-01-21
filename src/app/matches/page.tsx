@@ -117,7 +117,7 @@ function MatchesContent() {
             </h3>
             <div className="grid">
               {groupedMatches[weekStart].map(match => (
-                <MatchCard key={match.id} match={match} />
+                <MatchCard key={match.id} match={match} onPaymentUpdate={fetchMatches} />
               ))}
             </div>
           </div>
