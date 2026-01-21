@@ -1,11 +1,11 @@
 'use client';
 
 import { signIn } from 'next-auth/react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [formData, setFormData] = useState({ licenseNumber: '', password: '' });
@@ -83,5 +83,13 @@ export default function LoginPage() {
         ¿Eres nuevo? <Link href="/register" style={{ color: 'var(--primary)' }}>Crea una cuenta</Link>
       </p>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="text-center p-4">Cargando...</div>}>
+      <LoginForm />
+    </Suspense>
   );
 }
