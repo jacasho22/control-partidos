@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import MatchCard from '@/components/MatchCard';
 
 interface Match {
@@ -22,9 +22,10 @@ interface Match {
   };
 }
 
-export default function MatchesPage() {
+function MatchesContent() {
   const { status } = useSession();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [matches, setMatches] = useState<Match[]>([]);
   const [filteredMatches, setFilteredMatches] = useState<Match[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -98,58 +99,42 @@ export default function MatchesPage() {
         </button>
       </div>
 
-      <div style={{ marginBottom: '2rem' }}>
-        <input 
-          type="text" 
-          placeholder="Buscar por equipo, categoría o número..." 
+      <div className="card" style={{ marginBottom: '2rem' }}>
+        <input
+          type="text"
+          placeholder="Buscar por equipo, categoría o número..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          style={{
-            width: '100%',
-            padding: '0.8rem',
-            borderRadius: 'var(--radius)',
-            border: '1px solid var(--border)',
-            background: 'var(--card-bg)',
-            color: 'var(--foreground)',
-            fontSize: '1rem'
-          }}
+          style={{ width: '100%', padding: '0.75rem', border: '1px solid var(--border)', borderRadius: '8px' }}
         />
       </div>
 
-      {filteredMatches.length === 0 ? (
-        <div className="card text-center" style={{ padding: '4rem' }}>
-          {matches.length === 0 ? (
-            <>
-              <h3>No hay partidos registrados</h3>
-              <p className="text-muted mt-2">Sube una designación en PDF para empezar a llevar el control.</p>
-            </>
-          ) : (
-             <p className="text-muted">No se encontraron partidos con &quot;{searchTerm}&quot;</p>
-          )}
-        </div>
-      ) : (
-        <div>
-          {sortedWeeks.map(weekKey => (
-            <div key={weekKey} style={{ marginBottom: '3rem' }}>
-              <h2 style={{ 
-                borderBottom: '2px solid var(--border)', 
-                paddingBottom: '0.5rem', 
-                marginBottom: '1.5rem', 
-                color: 'var(--foreground)',
-                fontSize: '1.5rem'
-              }}>
-                <span style={{ color: 'var(--primary)', marginRight: '0.5rem' }}>📅</span>
-                Semana del {new Date(weekKey).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}
-              </h2>
-              <div className="grid">
-                {groupedMatches[weekKey].map((match) => (
-                  <MatchCard key={match.id} match={match} onPaymentUpdate={fetchMatches} />
-                ))}
-              </div>
+      {sortedWeeks.length > 0 ? (
+        sortedWeeks.map(weekStart => (
+          <div key={weekStart} style={{ marginBottom: '2rem' }}>
+            <h3 style={{ marginBottom: '1rem', color: 'var(--text-muted)', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem' }}>
+              Semana del {new Date(weekStart).toLocaleDateString('es-ES')}
+            </h3>
+            <div className="grid">
+              {groupedMatches[weekStart].map(match => (
+                <MatchCard key={match.id} match={match} />
+              ))}
             </div>
-          ))}
+          </div>
+        ))
+      ) : (
+        <div className="text-center" style={{ padding: '4rem 0', color: 'var(--text-muted)' }}>
+          <p>No se encontraron partidos.</p>
         </div>
       )}
     </div>
+  );
+}
+
+export default function MatchesPage() {
+  return (
+    <Suspense fallback={<div className="text-center p-4">Cargando partidos...</div>}>
+      <MatchesContent />
+    </Suspense>
   );
 }

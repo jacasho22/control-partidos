@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -29,7 +29,7 @@ interface DashboardData {
   totalMatches: number;
 }
 
-export default function Dashboard() {
+function DashboardContent() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [data, setData] = useState<DashboardData | null>(null);
@@ -49,6 +49,8 @@ export default function Dashboard() {
           console.error(err);
           setLoading(false);
         });
+    } else if (status === 'loading') {
+      // Do nothing while loading session
     }
   }, [status, router]);
 
@@ -98,48 +100,24 @@ export default function Dashboard() {
 
         <div className="card">
           <h3>Estadísticas de Uso</h3>
-          <p className="mb-4">Categoría más pitada: <strong>{data.topCategory}</strong></p>
-          <p>Total partidos esta temporada: <strong>{data.totalMatches}</strong></p>
-          <Link href="/statistics" style={{ color: 'var(--primary)', display: 'block', marginTop: '1.2rem' }}>
-            Ver histórico →
-          </Link>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+            <span>Partidos totales:</span>
+            <strong>{data.totalMatches}</strong>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span>Categoría más frecuente:</span>
+            <strong>{data.topCategory}</strong>
+          </div>
         </div>
       </div>
-
-      <div className="mt-4">
-        <h2 className="mb-4">Últimos Partidos</h2>
-        {data.recentMatches.length > 0 ? (
-          <div className="grid">
-            {data.recentMatches.map((match) => (
-              <div key={match.id} className="card" style={{ padding: '1rem' }}>
-                <div className="flex" style={{ justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                  <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{formatDate(match.date)}</span>
-                  <span style={{ fontSize: '0.8rem', background: 'var(--bg)', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>
-                    #{match.matchNumber}
-                  </span>
-                </div>
-                <p style={{ fontWeight: 'bold', fontSize: '0.95rem' }}>{match.localTeam} vs {match.visitorTeam}</p>
-                <div className="flex" style={{ justifyContent: 'space-between', marginTop: '0.5rem', alignItems: 'center' }}>
-                   <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{match.role}</span>
-                   <span style={{ fontWeight: 'bold', color: 'var(--success)' }}>
-                      {((match.payment?.matchPayment || 0) + (match.payment?.gasPayment || 0)).toFixed(2)}€
-                   </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="card text-center" style={{ padding: '3rem' }}>
-            <p className="text-muted">Aún no has registrado ningún partido.</p>
-            <p className="text-muted">Sube tu primer PDF de designación para empezar.</p>
-          </div>
-        )}
-        {data.totalMatches > 3 && (
-          <Link href="/matches" className="btn" style={{ display: 'block', textAlign: 'center', marginTop: '1rem', border: '1px solid var(--border)' }}>
-            Ver todos los partidos
-          </Link>
-        )}
-      </div>
     </div>
+  );
+}
+
+export default function Dashboard() {
+  return (
+    <Suspense fallback={<div className="text-center p-4">Cargando Dashboard...</div>}>
+      <DashboardContent />
+    </Suspense>
   );
 }
