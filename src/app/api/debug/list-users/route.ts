@@ -14,6 +14,12 @@ export async function GET() {
     return NextResponse.json({ users });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'An unknown error occurred';
-    return NextResponse.json({ error: message }, { status: 500 });
+    let host = 'unknown';
+    try {
+      const url = process.env.DATABASE_URL || '';
+      // Only expose host, never credentials
+      host = new URL(url.replace(/^psql\s+/i, '').replace(/\u2026/g, '')).host;
+    } catch {}
+    return NextResponse.json({ error: message, dbHost: host }, { status: 500 });
   }
 }
