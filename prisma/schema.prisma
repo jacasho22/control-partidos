@@ -65,6 +65,7 @@ model Match {
   divisionId   String
   role         String // ARBITRO PRINCIPAL, ANOTADOR, etc.
   matchday     Int? // Jornada
+  partners     Json? // Information about technical team (name, role, phone)
   userId       String
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt

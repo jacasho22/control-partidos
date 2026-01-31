@@ -7,27 +7,29 @@ import { useRouter } from 'next/navigation';
 export default function UploadPage() {
   const { data: session } = useSession();
   const router = useRouter();
-  const [file, setFile] = useState<File | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [parsedMatches, setParsedMatches] = useState<any[]>([]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]);
+    if (e.target.files && e.target.files.length > 0) {
+      setFiles(Array.from(e.target.files));
       setError('');
     }
   };
 
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!file) return;
+    if (files.length === 0) return;
 
     setLoading(true);
     setError('');
 
     const formData = new FormData();
-    formData.append('file', file);
+    files.forEach((file) => {
+      formData.append('files', file);
+    });
 
     try {
       const res = await fetch('/api/matches/upload', {
@@ -39,11 +41,11 @@ export default function UploadPage() {
         const data = await res.json();
         setParsedMatches(data.matches);
         if (data.matches.length === 0) {
-          setError('No se encontraron partidos en el PDF.');
+          setError('No se encontraron partidos en los PDFs.');
         }
       } else {
         const data = await res.json();
-        setError(data.message || 'Error al procesar el PDF');
+        setError(data.message || 'Error al procesar los PDFs');
       }
     } catch (err: any) {
       console.error('Fetch error:', err);
@@ -78,17 +80,22 @@ export default function UploadPage() {
 
   return (
     <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-      <h1 className="mb-4">Subir Designación</h1>
-      <p className="text-muted mb-4">Sube el PDF que descargas de la web para extraer automáticamente tus partidos.</p>
+      <h1 className="mb-4">Subir Designaciones</h1>
+      <p className="text-muted mb-4">Sube uno o varios PDFs que descargas de la web para extraer automáticamente tus partidos.</p>
 
       <div className="card">
         <form onSubmit={handleUpload}>
           <div className="form-group">
-            <label>Selecciona el archivo PDF</label>
-            <input type="file" accept=".pdf" onChange={handleFileChange} />
+            <label>Selecciona los archivos PDF</label>
+            <input type="file" accept=".pdf" multiple onChange={handleFileChange} />
+            {files.length > 0 && (
+              <p className="text-muted" style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}>
+                {files.length} archivo{files.length > 1 ? 's' : ''} seleccionado{files.length > 1 ? 's' : ''}
+              </p>
+            )}
           </div>
-          <button type="submit" className="btn btn-primary" disabled={!file || loading}>
-            {loading ? 'Procesando...' : 'Analizar PDF'}
+          <button type="submit" className="btn btn-primary" disabled={files.length === 0 || loading}>
+            {loading ? 'Procesando...' : `Analizar ${files.length > 0 ? files.length : ''} PDF${files.length > 1 ? 's' : ''}`}
           </button>
         </form>
       </div>
@@ -114,6 +121,17 @@ export default function UploadPage() {
                 <div className="mt-4" style={{ borderTop: '1px solid var(--border)', paddingTop: '0.5rem', fontSize: '0.9rem' }}>
                   <p>📍 {match.venue}</p>
                   <p>👤 {match.role}</p>
+                  {match.partners && match.partners.length > 0 && (
+                    <div className="mt-2" style={{ borderTop: '1px dashed var(--border)', paddingTop: '0.5rem' }}>
+                      <p style={{ fontWeight: 'bold', fontSize: '0.8rem', marginBottom: '0.2rem' }}>Compañeros:</p>
+                      {match.partners.map((p: any, pIdx: number) => (
+                        <div key={pIdx} style={{ fontSize: '0.8rem', marginLeft: '0.5rem' }}>
+                          <span className="text-muted">{p.role}:</span> {p.name}
+                          {p.phone && <span style={{ color: 'var(--primary)', marginLeft: '0.5rem' }}>📞 {p.phone}</span>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             ))}

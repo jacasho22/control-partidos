@@ -90,9 +90,9 @@ function DashboardContent() {
         <div className="card">
           <h3>Ingresos Temporada</h3>
           <div style={{ fontSize: '2rem', fontWeight: 'bold', margin: '1rem 0', color: 'var(--primary)' }}>
-            {data.totalEarnings.toFixed(2)}€
+            {(data.totalEarnings || 0).toFixed(2)}€
           </div>
-          <p className="text-muted">Semana actual: {data.weeklyEarnings.toFixed(2)}€</p>
+          <p className="text-muted">Semana actual: {(data.weeklyEarnings || 0).toFixed(2)}€</p>
           <Link href="/statistics" style={{ color: 'var(--primary)', display: 'block', marginTop: '1rem' }}>
             Ver estadísticas detalladas →
           </Link>

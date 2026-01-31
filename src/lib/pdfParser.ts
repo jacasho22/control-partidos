@@ -2,6 +2,12 @@
 import pdf from 'pdf-parse/lib/pdf-parse.js';
 import fs from 'fs';
 
+export interface Partner {
+  role: string;
+  name: string;
+  phone?: string;
+}
+
 export interface ParsedMatch {
   matchNumber: string;
   date: string; // Formato DD/MM/YYYY
@@ -14,6 +20,7 @@ export interface ParsedMatch {
   division: string;
   role: string;
   matchday?: number;
+  partners?: Partner[];
 }
 
 export async function parseDesignationPDF(buffer: Buffer): Promise<ParsedMatch[]> {
@@ -48,7 +55,9 @@ export async function parseDesignationPDF(buffer: Buffer): Promise<ParsedMatch[]
 
     for (const block of summaryBlocks) {
       try {
-        const match: Partial<ParsedMatch> = {};
+        const match: Partial<ParsedMatch> = {
+          partners: []
+        };
         
         // El número de partido está al principio del bloque
         const numMatch = block.match(/^(\d+)/);
@@ -94,23 +103,65 @@ export async function parseDesignationPDF(buffer: Buffer): Promise<ParsedMatch[]
           }
         }
 
-        // Detectar Rol (Función)
-        const blockLower = block.toLowerCase().replace(/\s+/g, '');
-        const rolePatterns = [
-          { role: 'ARBITRO PRINCIPAL', search: 'arbitroprincipal' },
-          { role: 'ARBITRO AUXILIAR', search: 'arbitroauxiliar' },
-          { role: 'ANOTADOR', search: 'anotador' },
-          { role: 'CRONOMETRADOR', search: 'cronometrador' }
-        ];
-
-        for (const pattern of rolePatterns) {
-          if (blockLower.includes(pattern.search)) {
-            match.role = pattern.role;
-            break;
+        // --- Extracción de EQUIPO ARBITRAL ---
+        const squadSectionMatch = block.match(/EQUIPO ARBITRAL\s+([\s\S]*?)(?=\nÁRBITROS -|$)/);
+        if (squadSectionMatch) {
+          const squadText = squadSectionMatch[1];
+          // Dividir por cada persona (comienza con FUNCIÓNNOMBRE Y APELLIDOS)
+          const personBlocks = squadText.split(/FUNCIÓNNOMBRE Y APELLIDOS/);
+          
+          for (const pBlock of personBlocks) {
+            if (!pBlock.trim()) continue;
+            
+            // Buscar Nombre con Licencia: Nombre (XXXX)
+            const nameIdMatch = pBlock.match(/(.*?)\((\d+)\)/);
+            if (nameIdMatch) {
+              const fullName = nameIdMatch[0].trim();
+              
+              // El rol está antes del nombre
+              const roleText = pBlock.split(fullName)[0].trim().replace(/\n/g, ' ');
+              
+              // El teléfono está después de TELÉFONOPOBLACIÓN
+              const phoneMatch = pBlock.match(/TELÉFONOPOBLACIÓN\n(\d+)/);
+              const phone = phoneMatch ? phoneMatch[1] : undefined;
+              
+              match.partners?.push({
+                role: roleText || 'ARBITRO',
+                name: fullName,
+                phone: phone
+              });
+            }
           }
         }
 
-        // Si no se detectó en el bloque de resumen, intentar en el bloque superior
+        // Detectar Rol (Función del usuario actual)
+        // Buscamos cuál de los partners coincide con el usuario detectado al principio
+        if (userName && match.partners) {
+          const myPartner = match.partners.find(p => p.name.includes(userName));
+          if (myPartner) {
+            match.role = myPartner.role;
+          }
+        }
+
+        // Fallback si no se detectó por partners
+        if (!match.role) {
+          const blockLower = block.toLowerCase().replace(/\s+/g, '');
+          const rolePatterns = [
+            { role: 'ARBITRO PRINCIPAL', search: 'arbitroprincipal' },
+            { role: 'ARBITRO AUXILIAR', search: 'arbitroauxiliar' },
+            { role: 'ANOTADOR', search: 'anotador' },
+            { role: 'CRONOMETRADOR', search: 'cronometrador' }
+          ];
+
+          for (const pattern of rolePatterns) {
+            if (blockLower.includes(pattern.search)) {
+              match.role = pattern.role;
+              break;
+            }
+          }
+        }
+
+        // Segundo fallback
         if (!match.role) {
           const manualBlockSplit = text.split(`NÚM.PARTIDO ${match.matchNumber}`)[1];
           if (manualBlockSplit) {
@@ -123,7 +174,7 @@ export async function parseDesignationPDF(buffer: Buffer): Promise<ParsedMatch[]
           }
         }
 
-        if (!match.role) match.role = 'ARBITRO PRINCIPAL'; // Fallback
+        if (!match.role) match.role = 'ARBITRO PRINCIPAL'; // Fallback final
 
         match.venue = globalVenue;
         match.venueAddress = globalAddress;
@@ -137,7 +188,7 @@ export async function parseDesignationPDF(buffer: Buffer): Promise<ParsedMatch[]
     }
 
     const uniqueMatches = Array.from(new Map(matches.map(m => [m.matchNumber, m])).values());
-    console.log(`Extracción completada: ${uniqueMatches.length} partidos encontrados.`);
+    console.log(`Extracción completada: ${uniqueMatches.length} partidos encontrados con sus respectivos compañeros.`);
 
     return uniqueMatches;
   } catch (error: any) {

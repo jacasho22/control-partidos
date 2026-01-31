@@ -108,6 +108,7 @@ export async function POST(req: Request) {
           divisionId: division.id,
           role: matchData.role,
           matchday: matchData.matchday,
+          partners: matchData.partners,
         },
         create: {
           matchNumber: matchData.matchNumber,
@@ -121,6 +122,7 @@ export async function POST(req: Request) {
           divisionId: division.id,
           role: matchData.role,
           matchday: matchData.matchday,
+          partners: matchData.partners,
           userId: userId,
         },
       });
