@@ -14,6 +14,11 @@ interface MatchCardProps {
     role: string;
     category: { name: string };
     division: { name: string };
+    partners?: Array<{
+      role: string;
+      name: string;
+      phone?: string;
+    }> | any;
     payment?: {
       matchPayment: number;
       gasPayment: number;
@@ -27,6 +32,9 @@ export default function MatchCard({ match, onPaymentUpdate }: MatchCardProps) {
   const [matchPayment, setMatchPayment] = useState(match.payment?.matchPayment?.toString() || '');
   const [gasPayment, setGasPayment] = useState(match.payment?.gasPayment?.toString() || '');
   const [loading, setLoading] = useState(false);
+
+  // Asegurar que partners sea un array si viene como JSON string o similar
+  const partners = Array.isArray(match.partners) ? match.partners : [];
 
   const handleUpdatePayment = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -125,10 +133,34 @@ export default function MatchCard({ match, onPaymentUpdate }: MatchCardProps) {
       </div>
 
       <div className="mb-4">
-        <p style={{ fontWeight: 'bold' }}>{match.localTeam} vs {match.visitorTeam}</p>
-        <p className="text-muted" style={{ fontSize: '0.9rem' }}>{match.category.name} - {match.division.name}</p>
-        <p className="text-muted" style={{ fontSize: '0.85rem' }}>📍 {match.venue}</p>
-        <p className="text-muted" style={{ fontSize: '0.85rem' }}>👤 {match.role}</p>
+        <p style={{ fontWeight: 'bold', fontSize: '1.05rem', marginBottom: '0.25rem' }}>{match.localTeam} vs {match.visitorTeam}</p>
+        <p className="text-muted" style={{ fontSize: '0.9rem', marginBottom: '0.5rem' }}>{match.category.name} - {match.division.name}</p>
+        <p style={{ fontSize: '0.85rem', marginBottom: '0.2rem' }}>📍 {match.venue}</p>
+        <p style={{ fontSize: '0.85rem', marginBottom: '0.5rem' }}>👤 Tu función: <strong>{match.role}</strong></p>
+        
+        {partners.length > 0 && (
+          <div style={{ marginTop: '0.75rem', padding: '0.75rem', background: 'var(--bg)', borderRadius: '8px', border: '1px solid var(--border)' }}>
+            <p style={{ fontSize: '0.8rem', fontWeight: 'bold', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.5rem', letterSpacing: '0.05em' }}>
+              Equipo Arbitral
+            </p>
+            {partners.map((partner, idx) => (
+              <div key={idx} style={{ fontSize: '0.85rem', marginBottom: idx !== partners.length - 1 ? '0.5rem' : 0 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: 'var(--text-muted)', width: '90px', flexShrink: 0 }}>{partner.role}:</span>
+                  <span style={{ flex: 1, fontWeight: 500 }}>{partner.name}</span>
+                </div>
+                {partner.phone && (
+                  <div style={{ display: 'flex', alignItems: 'center', marginTop: '0.1rem', color: 'var(--primary)', fontWeight: 500 }}>
+                    <svg style={{ marginRight: '0.4rem' }} xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                    </svg>
+                    <a href={`tel:${partner.phone}`} style={{ color: 'inherit', textDecoration: 'none' }}>{partner.phone}</a>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div style={{ borderTop: '1px solid var(--border)', paddingTop: '1rem', marginTop: '1rem' }}>

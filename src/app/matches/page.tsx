@@ -5,6 +5,12 @@ import { useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import MatchCard from '@/components/MatchCard';
 
+interface Partner {
+  role: string;
+  name: string;
+  phone?: string;
+}
+
 interface Match {
   id: string;
   matchNumber: string;
@@ -16,6 +22,7 @@ interface Match {
   role: string;
   category: { name: string };
   division: { name: string };
+  partners?: Partner[];
   payment?: {
     matchPayment: number;
     gasPayment: number;
@@ -25,7 +32,6 @@ interface Match {
 function MatchesContent() {
   const { status } = useSession();
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [matches, setMatches] = useState<Match[]>([]);
   const [filteredMatches, setFilteredMatches] = useState<Match[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
