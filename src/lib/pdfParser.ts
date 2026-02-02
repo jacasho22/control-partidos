@@ -114,20 +114,44 @@ export async function parseDesignationPDF(buffer: Buffer): Promise<ParsedMatch[]
             if (!pBlock.trim()) continue;
             
               // Buscar Nombre con Licencia: Nombre (XXXX)
-              const nameIdMatch = pBlock.match(/(.*?)\((\d+)\)/);
+              // Usamos un regex que busque el patrón de la licencia al final
+              const nameIdMatch = pBlock.match(/(.*?)\s*\(\d+\)/);
               if (nameIdMatch) {
-                const fullName = nameIdMatch[0].trim().replace(/\s+/g, ' ');
+                let fullTextBeforePhone = nameIdMatch[0].trim();
                 
-                // El rol está antes del nombre
-                const roleText = pBlock.split(nameIdMatch[0])[0].trim().replace(/\n/g, ' ').replace(/\s+/g, ' ');
+                // Roles conocidos para limpiar el nombre
+                const knownRoles = [
+                  'ARBITRO PRINCIPAL',
+                  'ARBITRO AUXILIAR',
+                  'ANOTADOR',
+                  'CRONOMETRADOR',
+                  'OPERADOR 24"',
+                  'OPERADOR 24',
+                  'COORDINADOR'
+                ];
+
+                let detectedRole = 'ARBITRO';
+                let cleanedName = fullTextBeforePhone;
+
+                // Intentar extraer el rol que está al principio
+                for (const role of knownRoles) {
+                  if (cleanedName.toUpperCase().startsWith(role)) {
+                    detectedRole = role;
+                    cleanedName = cleanedName.substring(role.length).trim();
+                    break;
+                  }
+                }
+
+                // Limpiar espacios múltiples y caracteres extraños
+                cleanedName = cleanedName.replace(/\s+/g, ' ').trim();
                 
                 // El teléfono está después de TELÉFONOPOBLACIÓN
-                const phoneMatch = pBlock.match(/TELÉFONOPOBLACIÓN\n(\d+)/);
+                const phoneMatch = pBlock.match(/TELÉFONOPOBLACIÓN\n?(\d+)/);
                 const phone = phoneMatch ? phoneMatch[1].trim() : undefined;
                 
                 match.partners?.push({
-                  role: roleText || 'ARBITRO',
-                  name: fullName,
+                  role: detectedRole,
+                  name: cleanedName,
                   phone: phone
                 });
               }

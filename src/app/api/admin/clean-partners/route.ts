@@ -14,16 +14,41 @@ export async function GET() {
       where: {}
     });
 
+    const knownRoles = [
+      'ARBITRO PRINCIPAL',
+      'ARBITRO AUXILIAR',
+      'ANOTADOR',
+      'CRONOMETRADOR',
+      'OPERADOR 24"',
+      'OPERADOR 24',
+      'COORDINADOR'
+    ];
+
     let updatedCount = 0;
     for (const match of matches) {
+      if (!match.partners) continue;
       let partners = match.partners as any[];
       if (Array.isArray(partners)) {
         let changed = false;
         const cleanedPartners = partners.map(p => {
-          const newName = p.name?.trim().replace(/\s+/g, ' ');
-          if (newName !== p.name) {
+          let name = p.name || '';
+          let role = p.role || 'ARBITRO';
+
+          // Limpieza agresiva del nombre
+          let newName = name.trim().replace(/\s+/g, ' ');
+
+          // Eliminar roles si están en el nombre
+          for (const kr of knownRoles) {
+            if (newName.toUpperCase().startsWith(kr)) {
+              newName = newName.substring(kr.length).trim();
+              role = kr; // Aprovechamos para corregir el rol si estaba mal
+              break;
+            }
+          }
+
+          if (newName !== name || role !== p.role) {
             changed = true;
-            return { ...p, name: newName };
+            return { ...p, name: newName, role };
           }
           return p;
         });
