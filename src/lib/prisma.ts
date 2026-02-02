@@ -6,17 +6,26 @@ const globalForPrisma = global as unknown as {
 const rawUrl = process.env.DATABASE_URL;
 if (rawUrl) {
   let cleaned = rawUrl.trim();
-  // Remove any surrounding quotes (single or double)
-  cleaned = cleaned.replace(/^["']|["']$/g, '');
-  // Aggressive trim
-  cleaned = cleaned.trim();
-  // Remove 'psql ' prefix if present
+  
+  // Recursivamente quitar comillas dobles o simples que puedan estar anidadas
+  while ((cleaned.startsWith('"') && cleaned.endsWith('"')) || (cleaned.startsWith("'") && cleaned.endsWith("'"))) {
+    cleaned = cleaned.slice(1, -1).trim();
+  }
+  
+  // Eliminar prefijo 'psql ' si existe (común si se copia de terminal)
   cleaned = cleaned.replace(/^psql\s+/i, '');
-  // Remove any non-ASCII characters or control characters that shouldn't be in a URL
-  cleaned = cleaned.replace(/[^\x20-\x7E]/g, '');
+  
+  // Filtrado estricto: solo permitir caracteres válidos en una URL de base de datos
+  // Esto elimina cualquier carácter invisible, espacios internos accidentales o basura Unicode
+  cleaned = cleaned.replace(/[^a-zA-Z0-9.:/@?&=_\-%+]/g, '');
   
   process.env.DATABASE_URL = cleaned;
-  console.log('Cleaned DATABASE_URL length:', cleaned.length);
+  
+  // Diagnóstico seguro para logs de Vercel (no muestra el password)
+  const safeLog = cleaned.length > 20 
+    ? `${cleaned.substring(0, 10)}...${cleaned.substring(cleaned.length - 10)}` 
+    : 'URL_TOO_SHORT';
+  console.log(`[Database Setup] Length: ${cleaned.length}, Shape: ${safeLog}`);
 }
 
 export const prisma = globalForPrisma.prisma ?? new PrismaClient({
@@ -25,6 +34,8 @@ export const prisma = globalForPrisma.prisma ?? new PrismaClient({
       url: process.env.DATABASE_URL,
     },
   },
+  // Añadir log de errores si estamos en producción para debuggear en Vercel
+  log: process.env.NODE_ENV === 'production' ? ['error'] : ['query', 'info', 'warn', 'error'],
 });
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
