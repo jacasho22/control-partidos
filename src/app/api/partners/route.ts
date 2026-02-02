@@ -12,11 +12,10 @@ export async function GET() {
   try {
     const userId = (session.user as any).id;
     
-    // Obtener todos los partidos del usuario que tengan partners
+    // Obtener todos los partidos del usuario
     const matches = await prisma.match.findMany({
       where: { 
-        userId,
-        partners: { not: null }
+        userId
       },
       select: {
         partners: true
@@ -26,6 +25,7 @@ export async function GET() {
     const partnerStats: Record<string, { count: number; phones: Set<string>; lastRole: string }> = {};
 
     matches.forEach(match => {
+      if (!match.partners) return;
       const partnersList = match.partners as any[];
       if (Array.isArray(partnersList)) {
         partnersList.forEach(p => {

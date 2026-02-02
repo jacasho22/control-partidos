@@ -15,7 +15,8 @@ export async function GET() {
       select: { homeCity: true, pricePerKm: true }
     });
     return NextResponse.json(user);
-  } catch (error) {
+  } catch (err) {
+    console.error('Error GET settings:', err);
     return NextResponse.json({ message: 'Error al obtener ajustes' }, { status: 500 });
   }
 }
@@ -36,7 +37,8 @@ export async function POST(req: Request) {
       }
     });
     return NextResponse.json({ message: 'Ajustes actualizados correctamente' });
-  } catch (error) {
+  } catch (err) {
+    console.error('Error POST settings:', err);
     return NextResponse.json({ message: 'Error al actualizar ajustes' }, { status: 500 });
   }
 }

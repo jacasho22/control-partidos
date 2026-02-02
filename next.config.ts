@@ -9,7 +9,7 @@ const withPWA = withPWAInit({
 const nextConfig: NextConfig = {
   /* config options here */
   reactCompiler: false,
-  turbopack: {}, 
+  turbopack: {}, // Forces webpack to be used for build worker stability
 };
 
 export default withPWA(nextConfig);
