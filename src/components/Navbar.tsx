@@ -9,8 +9,17 @@ export default function Navbar() {
   return (
     <nav className="navbar">
       <div className="container navbar-container">
-        <Link href="/" className="logo">
-          🏀 Control<span>Partidos</span>
+        <Link href="/" className="logo" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <img 
+            src="/fbcv-logo.png" 
+            alt="FBCV" 
+            style={{ height: '40px', width: 'auto' }}
+            onError={(e) => (e.currentTarget.style.display = 'none')} 
+          />
+          <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.1 }}>
+            <span style={{ fontSize: '1rem' }}>Control</span>
+            <span style={{ fontSize: '1.2rem', color: 'var(--primary)' }}>Partidos</span>
+          </div>
         </Link>
         
         <div className="nav-links">
@@ -19,8 +28,9 @@ export default function Navbar() {
               <Link href="/dashboard" className="nav-item">Dashboard</Link>
               <Link href="/matches" className="nav-item">Partidos</Link>
               <Link href="/partners" className="nav-item">Compañeros</Link>
+              <Link href="/statistics" className="nav-item">Estadísticas</Link>
               <Link href="/upload" className="nav-item">Subir</Link>
-              <Link href="/statistics" className="nav-item">Stats</Link>
+              <Link href="/settings" className="nav-item">Ajustes</Link>
               {session.user?.role === 'ADMIN' && (
                 <Link href="/admin" className="admin-link">Admin</Link>
               )}

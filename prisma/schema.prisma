@@ -25,6 +25,9 @@ model User {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
+  homeCity   String? // City Hall of residence for distance calculation
+  pricePerKm Float   @default(0.23) // Standard rate per km
+
   matches  Match[]
   payments Payment[]
 }

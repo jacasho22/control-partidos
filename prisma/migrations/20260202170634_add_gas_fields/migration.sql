@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "User" ADD COLUMN     "homeCity" TEXT,
+ADD COLUMN     "pricePerKm" DOUBLE PRECISION NOT NULL DEFAULT 0.23;

@@ -11,6 +11,7 @@ interface MatchCardProps {
     localTeam: string;
     visitorTeam: string;
     venue: string;
+    venueAddress?: string;
     role: string;
     category: { name: string };
     division: { name: string };
@@ -32,9 +33,61 @@ export default function MatchCard({ match, onPaymentUpdate }: MatchCardProps) {
   const [matchPayment, setMatchPayment] = useState(match.payment?.matchPayment?.toString() || '');
   const [gasPayment, setGasPayment] = useState(match.payment?.gasPayment?.toString() || '');
   const [loading, setLoading] = useState(false);
+  const [calculatingGas, setCalculatingGas] = useState(false);
 
   // Asegurar que partners sea un array si viene como JSON string o similar
   const partners = Array.isArray(match.partners) ? match.partners : [];
+
+  const handleAutoCalculateGas = async () => {
+    setCalculatingGas(true);
+    try {
+      // 1. Obtener ajustes del usuario
+      const settingsRes = await fetch('/api/user/settings');
+      if (!settingsRes.ok) throw new Error('No se pudieron obtener los ajustes');
+      const settings = await settingsRes.json();
+      
+      if (!settings.homeCity) {
+        alert('Por favor, configura tu ciudad de residencia en Ajustes primero.');
+        setCalculatingGas(false);
+        return;
+      }
+
+      // 2. Extraer ciudad del partido (asumiendo que está en el venue o venueAddress)
+      // Usualmente "Pabellón Municipal de [Ciudad]"
+      const venueCity = match.venueAddress || match.venue;
+
+      // 3. Geocodificar ciudades y obtener distancia (usando Nominatim y OSRM - servicios gratuitos)
+      const getCoords = async (city: string) => {
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(city + ', España')}&limit=1`);
+        const data = await res.json();
+        if (data.length > 0) return { lat: data[0].lat, lon: data[0].lon };
+        return null;
+      };
+
+      const homeCoords = await getCoords(settings.homeCity);
+      const matchCoords = await getCoords(venueCity);
+
+      if (!homeCoords || !matchCoords) {
+        throw new Error('No se pudo localizar una de las ciudades.');
+      }
+
+      // 4. Obtener distancia por carretera mediante OSRM
+      const osrmRes = await fetch(`https://router.project-osrm.org/route/v1/driving/${homeCoords.lon},${homeCoords.lat};${matchCoords.lon},${matchCoords.lat}?overview=false`);
+      const osrmData = await osrmRes.json();
+      
+      if (osrmData.code !== 'Ok') throw new Error('Error al calcular la ruta');
+      
+      const distanceKm = osrmData.routes[0].distance / 1000; // OSRM devuelve metros
+      const totalGas = (distanceKm * 2) * (settings.pricePerKm || 0.23); // Ida y vuelta
+      
+      setGasPayment(totalGas.toFixed(2));
+    } catch (err) {
+      console.error('Error calculating gas:', err);
+      alert('Error al calcular la gasolina automáticamente. Por favor, revísalo manualmente.');
+    } finally {
+      setCalculatingGas(false);
+    }
+  };
 
   const handleUpdatePayment = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -139,7 +192,20 @@ export default function MatchCard({ match, onPaymentUpdate }: MatchCardProps) {
         
         <div style={{ marginBottom: '1rem' }}>
           <a 
-            href={`https://www.waze.com/ul?q=${encodeURIComponent(match.venue + ' ' + (match as any).venueAddress || '')}`}
+            href={`waze://?q=${encodeURIComponent(match.venue)}&navigate=yes`}
+            onClick={(e) => {
+              // Fallback to web link if scheme is not supported (desktop or no app)
+              const webUrl = `https://www.waze.com/ul?q=${encodeURIComponent(match.venue)}&navigate=yes`;
+              if (!navigator.userAgent.match(/(iPhone|iPod|iPad|Android)/)) {
+                window.open(webUrl, '_blank');
+                e.preventDefault();
+              } else {
+                // On mobile, try to open app, then fallback to web
+                setTimeout(() => {
+                  window.location.href = webUrl;
+                }, 500);
+              }
+            }}
             target="_blank"
             rel="noopener noreferrer"
             className="btn"
@@ -204,13 +270,25 @@ export default function MatchCard({ match, onPaymentUpdate }: MatchCardProps) {
               </div>
               <div className="form-group" style={{ marginBottom: 0 }}>
                 <label style={{ fontSize: '0.8rem' }}>Gasolina (€)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={gasPayment}
-                  onChange={(e) => setGasPayment(e.target.value)}
-                  placeholder="0.00"
-                />
+                <div style={{ display: 'flex', gap: '0.25rem' }}>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={gasPayment}
+                    onChange={(e) => setGasPayment(e.target.value)}
+                    placeholder="0.00"
+                  />
+                  <button 
+                    type="button" 
+                    onClick={handleAutoCalculateGas}
+                    className="btn"
+                    disabled={calculatingGas}
+                    style={{ background: '#f1f5f9', padding: '0 0.5rem', border: '1px solid var(--border)', fontSize: '1rem' }}
+                    title="Calcular según distancia ayuntamientos"
+                  >
+                    {calculatingGas ? '...' : '🧮'}
+                  </button>
+                </div>
               </div>
             </div>
             <div className="flex" style={{ justifyContent: 'flex-end', gap: '0.5rem' }}>
