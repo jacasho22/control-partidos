@@ -9,8 +9,7 @@ const withPWA = withPWAInit({
 const nextConfig: NextConfig = {
   /* config options here */
   reactCompiler: false,
-  // Sugerencia del log de error para silenciar/evitar fallos en el worker
-  // turbopack: {}, 
+  turbopack: {}, 
 };
 
 export default withPWA(nextConfig);
