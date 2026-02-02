@@ -113,24 +113,24 @@ export async function parseDesignationPDF(buffer: Buffer): Promise<ParsedMatch[]
           for (const pBlock of personBlocks) {
             if (!pBlock.trim()) continue;
             
-            // Buscar Nombre con Licencia: Nombre (XXXX)
-            const nameIdMatch = pBlock.match(/(.*?)\((\d+)\)/);
-            if (nameIdMatch) {
-              const fullName = nameIdMatch[0].trim();
-              
-              // El rol está antes del nombre
-              const roleText = pBlock.split(fullName)[0].trim().replace(/\n/g, ' ');
-              
-              // El teléfono está después de TELÉFONOPOBLACIÓN
-              const phoneMatch = pBlock.match(/TELÉFONOPOBLACIÓN\n(\d+)/);
-              const phone = phoneMatch ? phoneMatch[1] : undefined;
-              
-              match.partners?.push({
-                role: roleText || 'ARBITRO',
-                name: fullName,
-                phone: phone
-              });
-            }
+              // Buscar Nombre con Licencia: Nombre (XXXX)
+              const nameIdMatch = pBlock.match(/(.*?)\((\d+)\)/);
+              if (nameIdMatch) {
+                const fullName = nameIdMatch[0].trim().replace(/\s+/g, ' ');
+                
+                // El rol está antes del nombre
+                const roleText = pBlock.split(nameIdMatch[0])[0].trim().replace(/\n/g, ' ').replace(/\s+/g, ' ');
+                
+                // El teléfono está después de TELÉFONOPOBLACIÓN
+                const phoneMatch = pBlock.match(/TELÉFONOPOBLACIÓN\n(\d+)/);
+                const phone = phoneMatch ? phoneMatch[1].trim() : undefined;
+                
+                match.partners?.push({
+                  role: roleText || 'ARBITRO',
+                  name: fullName,
+                  phone: phone
+                });
+              }
           }
         }
 
