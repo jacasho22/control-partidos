@@ -1,8 +1,6 @@
 'use client';
 
-import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
-import { useState } from 'react';
 
 export default function Navbar() {
   const { data: session } = useSession();
@@ -19,6 +17,7 @@ export default function Navbar() {
             <>
               <Link href="/dashboard" className="nav-item">Dashboard</Link>
               <Link href="/matches" className="nav-item">Partidos</Link>
+              <Link href="/partners" className="nav-item">Compañeros</Link>
               <Link href="/upload" className="nav-item">Subir</Link>
               <Link href="/statistics" className="nav-item">Stats</Link>
               {session.user?.role === 'ADMIN' && (
