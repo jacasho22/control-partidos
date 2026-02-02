@@ -11,7 +11,7 @@ export async function GET() {
 
   try {
     const matches = await prisma.match.findMany({
-      where: { partners: { not: null } }
+      where: {}
     });
 
     let updatedCount = 0;
