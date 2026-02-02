@@ -6,34 +6,32 @@ import { useState } from 'react';
 
 export default function Navbar() {
   const { data: session } = useSession();
-  const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <nav style={navStyle}>
-      <div className="container" style={navContainerStyle}>
-        <Link href="/" style={logoStyle}>
+    <nav className="navbar">
+      <div className="container navbar-container">
+        <Link href="/" className="logo">
           🏀 Control<span>Partidos</span>
         </Link>
         
-        <div style={navLinksStyle}>
+        <div className="nav-links">
           {session ? (
             <>
-              <Link href="/dashboard">Dashboard</Link>
-              <Link href="/matches">Mis Partidos</Link>
-              <Link href="/upload">Subir PDF</Link>
-              <Link href="/statistics">Estadísticas</Link>
+              <Link href="/dashboard" className="nav-item">Dashboard</Link>
+              <Link href="/matches" className="nav-item">Partidos</Link>
+              <Link href="/upload" className="nav-item">Subir</Link>
+              <Link href="/statistics" className="nav-item">Stats</Link>
               {session.user?.role === 'ADMIN' && (
-                <Link href="/admin" style={adminLinkStyle}>Admin</Link>
+                <Link href="/admin" className="admin-link">Admin</Link>
               )}
-              <div style={userMenuStyle}>
-                <span>{session.user?.name}</span>
-                <button onClick={() => signOut()} style={signOutBtnStyle}>Salir</button>
+              <div className="user-menu">
+                <button onClick={() => signOut()} className="signout-btn">Salir</button>
               </div>
             </>
           ) : (
             <>
-              <Link href="/login">Entrar</Link>
-              <Link href="/register" className="btn btn-primary" style={{color: 'white'}}>Registrarse</Link>
+              <Link href="/login" className="nav-item">Entrar</Link>
+              <Link href="/register" className="btn btn-primary nav-btn-signup">Registro</Link>
             </>
           )}
         </div>
@@ -42,52 +40,4 @@ export default function Navbar() {
   );
 }
 
-const navStyle: React.CSSProperties = {
-  background: 'var(--white)',
-  borderBottom: '1px solid var(--border)',
-  position: 'sticky',
-  top: 0,
-  zIndex: 100,
-};
-
-const navContainerStyle: React.CSSProperties = {
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  padding: '1rem',
-};
-
-const logoStyle: React.CSSProperties = {
-  fontSize: '1.5rem',
-  fontWeight: 'bold',
-  color: 'var(--primary)',
-};
-
-const navLinksStyle: React.CSSProperties = {
-  display: 'flex',
-  gap: '1.5rem',
-  alignItems: 'center',
-};
-
-const userMenuStyle: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: '1rem',
-  marginLeft: '1rem',
-  paddingLeft: '1rem',
-  borderLeft: '1px solid var(--border)',
-};
-
-const signOutBtnStyle: React.CSSProperties = {
-  background: 'transparent',
-  color: 'var(--error)',
-  fontSize: '0.9rem',
-};
-
-const adminLinkStyle: React.CSSProperties = {
-  color: 'var(--text-muted)',
-  fontWeight: 'bold',
-  border: '1px solid var(--border)',
-  padding: '0.25rem 0.5rem',
-  borderRadius: '4px',
-};
+// Estos estilos se moverán a globals.css para mejor manejo de media queries
