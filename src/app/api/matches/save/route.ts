@@ -24,9 +24,10 @@ export async function POST(req: Request) {
     const savedMatches = [];
 
     for (const matchData of matches) {
-      console.log('Procesando partido individual:', JSON.stringify(matchData, null, 2));
+      console.log(`--- Procesando partido ${matchData.matchNumber} ---`);
+      
       // 1. Encontrar o crear categoría
-      const catName = matchData.category.trim();
+      const catName = (matchData.category || 'Desconocida').trim();
       let category = await prisma.category.findFirst({
         where: { name: catName },
       });
@@ -43,7 +44,7 @@ export async function POST(req: Request) {
       }
 
       // 2. Encontrar o crear división
-      const divName = matchData.division.trim();
+      const divName = (matchData.division || 'Sin división').trim();
       let division = await prisma.division.findFirst({
         where: {
           name: divName,
@@ -52,7 +53,7 @@ export async function POST(req: Request) {
       });
 
       if (!division) {
-        console.log(`División no encontrada: "${divName}" para categoría ${catName}. Creando...`);
+        console.log(`División no encontrada: "${divName}". Creando...`);
         division = await prisma.division.create({
           data: {
             name: divName,
@@ -64,70 +65,68 @@ export async function POST(req: Request) {
 
       // Validar datos mínimos obligatorios para el modelo Match
       if (!matchData.matchNumber || !matchData.date || !matchData.time || !matchData.localTeam || !matchData.visitorTeam || !matchData.role) {
-        console.warn('Faltan campos obligatorios en el partido:', matchData.matchNumber, {
-          matchNumber: !!matchData.matchNumber,
-          date: !!matchData.date,
-          time: !!matchData.time,
-          localTeam: !!matchData.localTeam,
-          visitorTeam: !!matchData.visitorTeam,
-          role: !!matchData.role
-        });
+        console.warn(`Faltan campos obligatorios para el partido ${matchData.matchNumber}`);
         continue;
       }
 
       // Parsear fecha DD/MM/YYYY a objeto Date
       const dateParts = matchData.date.split('/');
       if (dateParts.length !== 3) {
-        console.warn(`Formato de fecha inválido para el partido ${matchData.matchNumber}: ${matchData.date}`);
+        console.warn(`Formato de fecha inválido: ${matchData.date}`);
         continue;
       }
       const [day, month, year] = dateParts;
       const dateObj = new Date(`${year}-${month}-${day}T00:00:00Z`);
 
       if (isNaN(dateObj.getTime())) {
-        console.warn(`Fecha inválida generada para el partido ${matchData.matchNumber}: ${matchData.date}`);
+        console.warn(`Fecha inválida: ${matchData.date}`);
         continue;
       }
 
+      console.log(`Realizando upsert para partido ${matchData.matchNumber}...`);
       // 3. Upsert del partido
-      const match = await prisma.match.upsert({
-        where: {
-          matchNumber_userId: {
+      try {
+        const match = await prisma.match.upsert({
+          where: {
+            matchNumber_userId: {
+              matchNumber: matchData.matchNumber,
+              userId: userId,
+            },
+          },
+          update: {
+            date: dateObj,
+            time: matchData.time,
+            venue: matchData.venue,
+            venueAddress: matchData.venueAddress,
+            localTeam: matchData.localTeam,
+            visitorTeam: matchData.visitorTeam,
+            categoryId: category.id,
+            divisionId: division.id,
+            role: matchData.role,
+            matchday: matchData.matchday,
+            partners: matchData.partners as any,
+          },
+          create: {
             matchNumber: matchData.matchNumber,
+            date: dateObj,
+            time: matchData.time,
+            venue: matchData.venue,
+            venueAddress: matchData.venueAddress,
+            localTeam: matchData.localTeam,
+            visitorTeam: matchData.visitorTeam,
+            categoryId: category.id,
+            divisionId: division.id,
+            role: matchData.role,
+            matchday: matchData.matchday,
+            partners: matchData.partners as any,
             userId: userId,
           },
-        },
-        update: {
-          date: dateObj,
-          time: matchData.time,
-          venue: matchData.venue,
-          venueAddress: matchData.venueAddress,
-          localTeam: matchData.localTeam,
-          visitorTeam: matchData.visitorTeam,
-          categoryId: category.id,
-          divisionId: division.id,
-          role: matchData.role,
-          matchday: matchData.matchday,
-          partners: matchData.partners,
-        },
-        create: {
-          matchNumber: matchData.matchNumber,
-          date: dateObj,
-          time: matchData.time,
-          venue: matchData.venue,
-          venueAddress: matchData.venueAddress,
-          localTeam: matchData.localTeam,
-          visitorTeam: matchData.visitorTeam,
-          categoryId: category.id,
-          divisionId: division.id,
-          role: matchData.role,
-          matchday: matchData.matchday,
-          partners: matchData.partners,
-          userId: userId,
-        },
-      });
-
-      savedMatches.push(match);
+        });
+        savedMatches.push(match);
+      } catch (upsertError: any) {
+        console.error(`Error en upsert del partido ${matchData.matchNumber}:`, upsertError);
+        throw upsertError; // Re-lanzar para capturarlo en el catch principal
+      }
     }
 
     return NextResponse.json({ 
@@ -135,14 +134,12 @@ export async function POST(req: Request) {
       count: savedMatches.length 
     });
   } catch (error: any) {
-    console.error('Error detallado al guardar partidos:', error);
-    if (error.code) console.error('Código de error Prisma:', error.code);
-    if (error.meta) console.error('Meta del error Prisma:', error.meta);
-    
+    console.error('ERROR FATAL AL GUARDAR PARTIDOS:', error);
     return NextResponse.json({ 
-      message: 'Error al guardar los partidos',
+      message: 'Error al procesar el guardado de partidos',
       error: error.message,
-      code: error.code
+      code: error.code,
+      meta: error.meta
     }, { status: 500 });
   }
 }
