@@ -204,11 +204,18 @@ export async function parseDesignationPDF(buffer: Buffer): Promise<ParsedMatch[]
         match.venueAddress = globalAddress;
 
         // Intentar extraer localidad más específica del bloque si existe
-        // En los PDFs de FBCV suele venir "Localidad: NOMBRE" o similar en los detalles
+        let blockLocality = '';
         const localityMatch = block.match(/LOCALIDAD[:\s]+(.*?)\n/i);
         if (localityMatch) {
-          match.venueAddress = localityMatch[1].trim(); 
+          blockLocality = localityMatch[1].trim(); 
         }
+
+        // Si no hay localidad en el bloque, intentar extraerla del encabezado global (p.ej. "PABELLON - CIUDAD")
+        if (!blockLocality && globalVenue.includes('-')) {
+          blockLocality = globalVenue.split('-').pop()?.trim() || '';
+        }
+
+        match.venueAddress = blockLocality || globalAddress;
 
         if (match.matchNumber && match.localTeam) {
           matches.push(match as ParsedMatch);

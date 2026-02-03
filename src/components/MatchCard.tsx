@@ -61,17 +61,30 @@ export default function MatchCard({ match, onPaymentUpdate }: MatchCardProps) {
       // 3. Geocodificar ciudades y obtener distancia (usando Nominatim y OSRM - servicios gratuitos)
       const getCoords = async (query: string) => {
         // Limpiar la consulta para mejorar resultados
-        const cleanQuery = query.replace(/Pabellón Municipal (de|del)/i, '').trim();
+        let cleanQuery = query.replace(/Pabellón Municipal (de|del)/i, '').trim();
+        cleanQuery = cleanQuery.replace(/Pabellón/i, '').trim();
+        
+        console.log('Geocoding query:', cleanQuery);
+        
         const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(cleanQuery + ', España')}&limit=1`);
         const data = await res.json();
         if (data.length > 0) return { lat: data[0].lat, lon: data[0].lon };
         
-        // Si falla, intentar una búsqueda más genérica (solo la ciudad)
-        if (query.includes(',')) {
-          const cityOnly = query.split(',')[0].trim();
-          const res2 = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(cityOnly + ', España')}&limit=1`);
+        // Fallback 1: Si hay coma, usar solo la primera parte
+        if (cleanQuery.includes(',')) {
+          const firstPart = cleanQuery.split(',')[0].trim();
+          const res2 = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(firstPart + ', España')}&limit=1`);
           const data2 = await res2.json();
           if (data2.length > 0) return { lat: data2[0].lat, lon: data2[0].lon };
+        }
+
+        // Fallback 2: Usar la última palabra (frecuentemente es la ciudad en "Pabellón de Ciudad")
+        const parts = cleanQuery.split(/\s+/);
+        if (parts.length > 1) {
+          const lastWord = parts[parts.length - 1].trim();
+          const res3 = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(lastWord + ', España')}&limit=1`);
+          const data3 = await res3.json();
+          if (data3.length > 0) return { lat: data3[0].lat, lon: data3[0].lon };
         }
         
         return null;
