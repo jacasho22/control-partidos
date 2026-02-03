@@ -163,6 +163,9 @@ export default function MatchCard({ match, onPaymentUpdate }: MatchCardProps) {
       if (window.confirm(confirmMsg)) {
         setGasPayment(totalGas.toFixed(2));
       }
+      if (window.confirm(confirmMsg)) {
+        setGasPayment(totalGas.toFixed(2));
+      }
     } catch (err: any) {
       console.error('Error calculating gas:', err);
       alert(`Error al calcular: ${err.message || 'Inténtalo manualmente'}`);
