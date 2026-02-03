@@ -36,9 +36,30 @@ export default function MatchCard({ match, onPaymentUpdate }: MatchCardProps) {
   const [gasPayment, setGasPayment] = useState(match.payment?.gasPayment?.toString() || '');
   const [loading, setLoading] = useState(false);
   const [calculatingGas, setCalculatingGas] = useState(false);
+  const [isEditingAddress, setIsEditingAddress] = useState(false);
+  const [editedAddress, setEditedAddress] = useState(match.venueAddress || match.venue);
 
   // Asegurar que partners sea un array si viene como JSON string o similar
   const partners = Array.isArray(match.partners) ? match.partners : [];
+
+  const handleSaveAddress = async () => {
+    try {
+      const res = await fetch(`/api/matches/${match.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ venueAddress: editedAddress }),
+      });
+
+      if (!res.ok) throw new Error('Error al guardar la dirección');
+      
+      setIsEditingAddress(false);
+      // Actualizar el objeto match localmente para que el cálculo de gasolina use el nuevo valor
+      match.venueAddress = editedAddress;
+      alert('Ubicación actualizada. Ahora puedes volver a calcular la gasolina.');
+    } catch (err) {
+      alert('Error al guardar la nueva ubicación');
+    }
+  };
 
 
 
@@ -289,7 +310,33 @@ export default function MatchCard({ match, onPaymentUpdate }: MatchCardProps) {
       <div className="mb-4">
         <p style={{ fontWeight: 'bold', fontSize: '1.05rem', marginBottom: '0.25rem' }}>{match.localTeam} vs {match.visitorTeam}</p>
         <p className="text-muted" style={{ fontSize: '0.9rem', marginBottom: '0.5rem' }}>{match.category.name} - {match.division.name}</p>
-        <p style={{ fontSize: '0.85rem', marginBottom: '0.5rem' }}>📍 {match.venue}</p>
+        
+        {isEditingAddress ? (
+            <div style={{ display: 'flex', gap: '0.5rem', width: '100%', marginBottom: '0.5rem' }}>
+              <input 
+                type="text" 
+                value={editedAddress} 
+                onChange={(e) => setEditedAddress(e.target.value)}
+                style={{ flex: 1, padding: '0.2rem', fontSize: '0.85rem' }}
+              />
+              <button onClick={handleSaveAddress} style={{cursor:'pointer'}}>💾</button>
+              <button onClick={() => setIsEditingAddress(false)} style={{cursor:'pointer'}}>❌</button>
+            </div>
+          ) : (
+            <p style={{ fontSize: '0.85rem', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '5px' }}>
+              📍 {match.venue} 
+              {match.venueAddress && match.venueAddress !== match.venue && (
+                <span className="text-muted" style={{ fontSize: '0.8rem' }}>({match.venueAddress})</span>
+              )}
+              <button 
+                onClick={() => setIsEditingAddress(true)} 
+                title="Editar ubicación manualmente"
+                style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 0 }}
+              >
+                ✏️
+              </button>
+            </p>
+          )}
         
         <div style={{ marginBottom: '1rem' }}>
           <a 
