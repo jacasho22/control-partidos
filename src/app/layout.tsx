@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   title: 'Control de Partidos - Árbitros',
   description: 'Gestión de designaciones arbitrales y estadísticas',
   icons: {
-    icon: '/favicon.png',
+    icon: '/favicon.jpg',
     apple: '/icons/icon-192x192.png',
   },
   themeColor: '#2563eb',

@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useSession, signOut } from 'next-auth/react';
 
 export default function Navbar() {
@@ -9,11 +10,14 @@ export default function Navbar() {
   return (
     <nav className="navbar">
       <div className="container navbar-container">
-        <Link href="/" className="logo" style={{ display: 'flex', alignItems: 'center' }}>
-          <img 
+        <Link href="/" className="logo" style={{ display: 'flex', alignItems: 'center', padding: '5px 0' }}>
+          <Image 
             src="/logo_fbcv.png" 
             alt="FBCV Logo" 
-            style={{ height: '45px', width: 'auto' }} 
+            width={120} 
+            height={45} 
+            priority
+            style={{ width: 'auto', height: '45px' }} 
           />
         </Link>
         
