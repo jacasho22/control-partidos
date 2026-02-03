@@ -60,31 +60,45 @@ export default function MatchCard({ match, onPaymentUpdate }: MatchCardProps) {
 
       // 3. Geocodificar ciudades y obtener distancia (usando Nominatim y OSRM - servicios gratuitos)
       const getCoords = async (query: string) => {
-        // Limpiar la consulta para mejorar resultados
+        // Limpiar la consulta para evitar errores como buscar "Cabo" en Galicia
         let cleanQuery = query.replace(/Pabellón Municipal (de|del)/i, '').trim();
-        cleanQuery = cleanQuery.replace(/Pabellón/i, '').trim();
+        cleanQuery = cleanQuery.replace(/Pabellón|Complejo Deportivo|Polideportivo/i, '').trim();
         
-        console.log('Geocoding query:', cleanQuery);
-        
-        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(cleanQuery + ', España')}&limit=1`);
-        const data = await res.json();
-        if (data.length > 0) return { lat: data[0].lat, lon: data[0].lon };
-        
-        // Fallback 1: Si hay coma, usar solo la primera parte
-        if (cleanQuery.includes(',')) {
-          const firstPart = cleanQuery.split(',')[0].trim();
-          const res2 = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(firstPart + ', España')}&limit=1`);
-          const data2 = await res2.json();
-          if (data2.length > 0) return { lat: data2[0].lat, lon: data2[0].lon };
+        // Si el nombre empieza por "CABO", es probable que sea una trampa para Nominatim (buscará cabos en toda España)
+        // Intentamos quitar "CABO" si va seguido de un nombre de ciudad conocido
+        if (cleanQuery.toUpperCase().startsWith('CABO ')) {
+          cleanQuery = cleanQuery.substring(5).trim();
         }
 
-        // Fallback 2: Usar la última palabra (frecuentemente es la ciudad en "Pabellón de Ciudad")
+        console.log('Geocoding query:', cleanQuery);
+        
+        // Buscamos específicamente en España
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(cleanQuery + ', España')}&limit=1&countrycodes=es`);
+        const data = await res.json();
+        
+        if (data.length > 0) {
+          return { 
+            lat: data[0].lat, 
+            lon: data[0].lon, 
+            display_name: data[0].display_name 
+          };
+        }
+        
+        // Fallback: Si hay coma, usar solo la primera parte
+        if (cleanQuery.includes(',')) {
+          const firstPart = cleanQuery.split(',')[0].trim();
+          const res2 = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(firstPart + ', España')}&limit=1&countrycodes=es`);
+          const data2 = await res2.json();
+          if (data2.length > 0) return { lat: data2[0].lat, lon: data2[0].lon, display_name: data2[0].display_name };
+        }
+
+        // Fallback 2: Usar la última palabra
         const parts = cleanQuery.split(/\s+/);
         if (parts.length > 1) {
           const lastWord = parts[parts.length - 1].trim();
-          const res3 = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(lastWord + ', España')}&limit=1`);
+          const res3 = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(lastWord + ', España')}&limit=1&countrycodes=es`);
           const data3 = await res3.json();
-          if (data3.length > 0) return { lat: data3[0].lat, lon: data3[0].lon };
+          if (data3.length > 0) return { lat: data3[0].lat, lon: data3[0].lon, display_name: data3[0].display_name };
         }
         
         return null;
@@ -95,19 +109,29 @@ export default function MatchCard({ match, onPaymentUpdate }: MatchCardProps) {
 
       if (!homeCoords || !matchCoords) {
         console.error('Geocoding failed for:', { home: settings.homeCity, match: venueCity });
-        throw new Error('No se pudo localizar una de las ciudades.');
+        throw new Error('No se pudo localizar tu ciudad o la del partido.');
       }
 
       // 4. Obtener distancia por carretera mediante OSRM
       const osrmRes = await fetch(`https://router.project-osrm.org/route/v1/driving/${homeCoords.lon},${homeCoords.lat};${matchCoords.lon},${matchCoords.lat}?overview=false`);
       const osrmData = await osrmRes.json();
       
-      if (osrmData.code !== 'Ok') throw new Error('Error al calcular la ruta');
+      if (osrmData.code !== 'Ok') throw new Error('Error al calcular la ruta por carretera');
       
       const distanceKm = osrmData.routes[0].distance / 1000; // OSRM devuelve metros
-      const totalGas = (distanceKm * 2) * (settings.pricePerKm || 0.23); // Ida y vuelta
+      const price = settings.pricePerKm || 0.23;
+      const totalGas = (distanceKm * 2) * price; // Ida y vuelta
       
-      setGasPayment(totalGas.toFixed(2));
+      // 5. Confirmar con el usuario para evitar errores de geocodificación
+      const confirmMsg = `Distancia calculada: ${distanceKm.toFixed(1)} km (solo ida).\n` +
+                         `Origen: ${settings.homeCity}\n` +
+                         `Destino detectado: ${matchCoords.display_name?.split(',')[0]}\n\n` +
+                         `Total Gasolina (ida y vuelta a ${price}€/km): ${totalGas.toFixed(2)}€\n\n` +
+                         `¿Es correcto?`;
+                         
+      if (window.confirm(confirmMsg)) {
+        setGasPayment(totalGas.toFixed(2));
+      }
     } catch (err) {
       console.error('Error calculating gas:', err);
       alert('Error al calcular la gasolina automáticamente. Por favor, revísalo manualmente.');
