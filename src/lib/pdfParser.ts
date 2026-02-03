@@ -217,6 +217,16 @@ export async function parseDesignationPDF(buffer: Buffer): Promise<ParsedMatch[]
 
         match.venueAddress = blockLocality || globalAddress;
 
+        // MEJORA: Extracción robusta basada en Código Postal (5 dígitos)
+        // Ejemplo: "C/ DENIA, 2-4 · 03690 SAN VICENTE DEL RASPEIG" -> "03690 SAN VICENTE DEL RASPEIG"
+        const addressSource = blockLocality || globalAddress || globalVenue;
+        const zipMatch = addressSource.match(/\b(\d{5})\s+(.*)/);
+        if (zipMatch) {
+           // Si encontramos CP + Ciudad, usamos eso como la dirección canónica
+           // Esto es mucho más preciso para la geolocalización
+           match.venueAddress = `${zipMatch[1]} ${zipMatch[2].trim()}`;
+        }
+
         if (match.matchNumber && match.localTeam) {
           matches.push(match as ParsedMatch);
         }
