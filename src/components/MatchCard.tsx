@@ -40,19 +40,7 @@ export default function MatchCard({ match, onPaymentUpdate }: MatchCardProps) {
   // Asegurar que partners sea un array si viene como JSON string o similar
   const partners = Array.isArray(match.partners) ? match.partners : [];
 
-  const handleAutoCalculateGas = async () => {
-    setCalculatingGas(true);
-    try {
-      // 1. Obtener ajustes del usuario
-      const settingsRes = await fetch('/api/user/settings');
-      if (!settingsRes.ok) throw new Error('No se pudieron obtener los ajustes');
-      const settings = await settingsRes.json();
-      
-      if (!settings.homeCity) {
-        alert('Por favor, configura tu ciudad de residencia en Ajustes primero.');
-        setCalculatingGas(false);
-        return;
-      }
+
 
   const handleAutoCalculateGas = async () => {
     setCalculatingGas(true);
