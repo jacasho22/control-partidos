@@ -27,11 +27,11 @@ export async function GET() {
     let updatedCount = 0;
     for (const match of matches) {
       if (!match.partners) continue;
-      let partners = match.partners as any[];
+      const partners = match.partners as any[];
       if (Array.isArray(partners)) {
         let changed = false;
         const cleanedPartners = partners.map(p => {
-          let name = p.name || '';
+          const name = p.name || '';
           let role = p.role || 'ARBITRO';
 
           // Limpieza agresiva del nombre
@@ -64,7 +64,8 @@ export async function GET() {
     }
 
     return NextResponse.json({ message: `Limpieza completada. ${updatedCount} partidos actualizados.` });
-  } catch (error) {
+  } catch (err) {
+    console.error('Error en limpieza:', err);
     return NextResponse.json({ message: 'Error en la limpieza' }, { status: 500 });
   }
 }

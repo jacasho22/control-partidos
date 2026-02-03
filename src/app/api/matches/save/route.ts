@@ -19,8 +19,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ message: 'Datos inválidos' }, { status: 400 });
     }
 
-    const userId = (session.user as any).id;
+    const userId = (session.user as any)?.id;
     console.log(`Guardando para usuario ID: ${userId}`);
+
+    if (!userId) {
+      console.error('ERROR: No se encontró el userId en la sesión');
+      return NextResponse.json({ message: 'Error de autenticación: No se encontró el ID de usuario' }, { status: 401 });
+    }
     const savedMatches = [];
 
     for (const matchData of matches) {

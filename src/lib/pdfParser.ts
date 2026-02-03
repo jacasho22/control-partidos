@@ -1,4 +1,4 @@
-// @ts-ignore - Importing from internal lib to bypass buggy index.js in pdf-parse 1.1.1
+// @ts-expect-error - Importing from internal lib to bypass buggy index.js in pdf-parse 1.1.1
 import pdf from 'pdf-parse/lib/pdf-parse.js';
 import fs from 'fs';
 
@@ -117,7 +117,7 @@ export async function parseDesignationPDF(buffer: Buffer): Promise<ParsedMatch[]
               // Usamos un regex que busque el patrón de la licencia al final
               const nameIdMatch = pBlock.match(/(.*?)\s*\(\d+\)/);
               if (nameIdMatch) {
-                let fullTextBeforePhone = nameIdMatch[0].trim();
+                const fullTextBeforePhone = nameIdMatch[0].trim();
                 
                 // Roles conocidos para limpiar el nombre
                 const knownRoles = [
@@ -202,6 +202,13 @@ export async function parseDesignationPDF(buffer: Buffer): Promise<ParsedMatch[]
 
         match.venue = globalVenue;
         match.venueAddress = globalAddress;
+
+        // Intentar extraer localidad más específica del bloque si existe
+        // En los PDFs de FBCV suele venir "Localidad: NOMBRE" o similar en los detalles
+        const localityMatch = block.match(/LOCALIDAD[:\s]+(.*?)\n/i);
+        if (localityMatch) {
+          match.venueAddress = localityMatch[1].trim(); 
+        }
 
         if (match.matchNumber && match.localTeam) {
           matches.push(match as ParsedMatch);
