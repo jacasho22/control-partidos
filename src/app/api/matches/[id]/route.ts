@@ -42,7 +42,6 @@ export async function DELETE(
     console.error('Error deleting match:', error);
     return NextResponse.json({ message: 'Error al eliminar el partido' }, { status: 500 });
   }
-  }
 }
 
 export async function PATCH(
