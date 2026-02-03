@@ -176,6 +176,10 @@ export default function MatchCard({ match, onPaymentUpdate }: MatchCardProps) {
     setLoading(true);
 
     try {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
       const res = await fetch('/api/payments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
