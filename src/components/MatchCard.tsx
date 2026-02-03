@@ -61,52 +61,72 @@ export default function MatchCard({ match, onPaymentUpdate }: MatchCardProps) {
 
       // 3. Geocodificar: Ayuntamiento a Ayuntamiento
       const getCoords = async (query: string, type: 'origen' | 'destino') => {
-        // Limpieza básica del nombre de la ciudad
-        let cleanQuery = query.replace(/Pabellón Municipal (de|del)/i, '').trim();
-        cleanQuery = cleanQuery.replace(/Pabellón|Complejo Deportivo|Polideportivo|Ayuntamiento/i, '').trim();
-        
-        // Quitar "CABO" si es el inicio para evitar falsos positivos lejanos
-        if (cleanQuery.toUpperCase().startsWith('CABO ')) {
-          cleanQuery = cleanQuery.substring(5).trim();
+        // Limpieza robusta del nombre
+        let cleanQuery = query;
+        // 1. Quitar todo lo que vaya después de " vs " o " - " si parece separador de equipos
+        cleanQuery = cleanQuery.split(/\s+vs\.?\s+/i)[0]; // Quitar " vs " y lo que sigue
+        if (cleanQuery.includes(' - ')) {
+           // Si hay guión, asumimos que lo anterior es el pabellón/ciudad y lo posterior equipos
+           // Pero cuidado con "Pabellon - Ciudad". Intentamos detectar si la segunda parte es ciudad conocida o equipo
+           cleanQuery = cleanQuery.split(' - ')[0]; 
         }
         
-        // Estrategia 1: Buscar "[Ciudad] Ayuntamiento"
-        const searchQ = `${cleanQuery} Ayuntamiento`;
-        console.log(`Geocoding ${type}:`, searchQ);
-        
-        // Función helper para buscar y filtrar por región
-        const fetchAndFilter = async (q: string) => {
-          const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&countrycodes=es&addressdetails=1&limit=5`);
-          const data = await res.json();
-          
-          if (data.length === 0) return null;
+        // 2. Quitar paréntesis (normalmente equipos o info extra)
+        cleanQuery = cleanQuery.replace(/\(.*?\)/g, '');
 
-          // Priorizar Comunidad Valenciana o Murcia
-          const priorityRegions = ['Comunidad Valenciana', 'Valenciana', 'Alicante', 'Castellón', 'Valencia', 'Región de Murcia', 'Murcia'];
-          
-          const bestMatch = data.find((item: { address?: { state?: string, region?: string, county?: string } }) => {
-            const state = item.address?.state || item.address?.region || '';
-            const county = item.address?.county || '';
-            return priorityRegions.some(r => state.includes(r) || county.includes(r));
-          });
-          
-          return bestMatch || data[0]; // Si no hay en la región, devolver el primero (fallback)
+        // 3. Limpieza de palabras clave de pabellones
+        cleanQuery = cleanQuery.replace(/Pabellón\s+Municipal\s+(de|del)?/i, ' ').trim();
+        cleanQuery = cleanQuery.replace(/Pabellón|Complejo\s+Deportivo|Polideportivo|Ayuntamiento|Ciutat\s+Esportiva|Palau\s+d'Esports|Centre\s+Esportiu/gi, ' ').trim();
+        
+        // 4. Normalizar espacios
+        cleanQuery = cleanQuery.replace(/\s+/g, ' ').trim();
+        
+        console.log(`Geocoding Cleaned Query (${type}):`, cleanQuery);
+
+        // Función centralizada de búsqueda con prioridad regional
+        const searchNominatim = async (q: string, region_filter?: string) => {
+           let url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&countrycodes=es&addressdetails=1&limit=3`;
+           if (region_filter) {
+             url += `&state=${encodeURIComponent(region_filter)}`;
+           }
+           try {
+             const res = await fetch(url);
+             const data = await res.json();
+             return data.length > 0 ? data[0] : null;
+           } catch (e) {
+             return null;
+           }
         };
 
-        let result = await fetchAndFilter(searchQ);
-
-        // Estrategia 2: Si falla, buscar solo la ciudad
-        if (!result) {
-          console.log(`Geocoding fallback 1 for ${type}: ${cleanQuery}`);
-          result = await fetchAndFilter(cleanQuery);
+        // PASO 1: Intentar búsqueda de "Ayuntamiento" en regiones prioritarias
+        // Esto filtra drásticamente los resultados incorrectos de otras partes de España
+        const regions = ['Comunidad Valenciana', 'Región de Murcia'];
+        
+        // Estrategia A: [Query] Ayuntamiento + Región (La más precisa)
+        for (const region of regions) {
+          const res = await searchNominatim(`${cleanQuery} Ayuntamiento`, region);
+          if (res) return { lat: res.lat, lon: res.lon, display_name: res.display_name, city_name: cleanQuery };
         }
 
-        // Estrategia 3: Si tiene coma, probar solo la primera parte
-        if (!result && cleanQuery.includes(',')) {
+        // Estrategia B: [Query] (Solo ciudad) + Región
+        for (const region of regions) {
+          const res = await searchNominatim(cleanQuery, region);
+          if (res) return { lat: res.lat, lon: res.lon, display_name: res.display_name, city_name: cleanQuery };
+        }
+
+        // Estrategia C: Global "Ayuntamiento" (Fallback si no está en CV/Murcia)
+        let result = await searchNominatim(`${cleanQuery} Ayuntamiento`);
+        if (result) return { lat: result.lat, lon: result.lon, display_name: result.display_name, city_name: cleanQuery };
+
+        // Estrategia D: Global exacta (Último recurso)
+        result = await searchNominatim(cleanQuery);
+        if (result) return { lat: result.lat, lon: result.lon, display_name: result.display_name, city_name: cleanQuery };
+
+        // Estrategia E: Split por comas si existen
+        if (cleanQuery.includes(',')) {
            const firstPart = cleanQuery.split(',')[0].trim();
-           console.log(`Geocoding fallback 2 for ${type}: ${firstPart}`);
-           result = await fetchAndFilter(`${firstPart} Ayuntamiento`);
-           if (!result) result = await fetchAndFilter(firstPart);
+           result = await searchNominatim(`${firstPart} Ayuntamiento`);
+           if (result) return { lat: result.lat, lon: result.lon, display_name: result.display_name, city_name: cleanQuery };
         }
 
         if (result) {

@@ -65,7 +65,7 @@ export default function UploadPage() {
       });
 
       if (res.ok) {
-        router.push('/dashboard?saved=true');
+        router.push('/matches');
       } else {
         const data = await res.json();
         setError(`Error al guardar: ${data.message}${data.error ? ' - ' + data.error : ''}`);
