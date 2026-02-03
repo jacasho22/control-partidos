@@ -9,8 +9,12 @@ export default function Navbar() {
   return (
     <nav className="navbar">
       <div className="container navbar-container">
-        <Link href="/" className="logo">
-          🏀 Control<span>Partidos</span>
+        <Link href="/" className="logo" style={{ display: 'flex', alignItems: 'center' }}>
+          <img 
+            src="/logo_fbcv.png" 
+            alt="FBCV Logo" 
+            style={{ height: '45px', width: 'auto' }} 
+          />
         </Link>
         
         <div className="nav-links">
