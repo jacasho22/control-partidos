@@ -61,22 +61,21 @@ export default function MatchCard({ match, onPaymentUpdate }: MatchCardProps) {
 
       // 3. Geocodificar: Ayuntamiento a Ayuntamiento
       const getCoords = async (query: string, type: 'origen' | 'destino') => {
-        // Limpieza robusta del nombre
+        // Limpieza robusta del nombre (solo si es destino suele venir sucio, pero no hace daño limpiar origen)
         let cleanQuery = query;
-        // 1. Quitar todo lo que vaya después de " vs " o " - " si parece separador de equipos
-        cleanQuery = cleanQuery.split(/\s+vs\.?\s+/i)[0]; // Quitar " vs " y lo que sigue
-        if (cleanQuery.includes(' - ')) {
-           // Si hay guión, asumimos que lo anterior es el pabellón/ciudad y lo posterior equipos
-           // Pero cuidado con "Pabellon - Ciudad". Intentamos detectar si la segunda parte es ciudad conocida o equipo
-           cleanQuery = cleanQuery.split(' - ')[0]; 
-        }
         
-        // 2. Quitar paréntesis (normalmente equipos o info extra)
-        cleanQuery = cleanQuery.replace(/\(.*?\)/g, '');
-
-        // 3. Limpieza de palabras clave de pabellones
-        cleanQuery = cleanQuery.replace(/Pabellón\s+Municipal\s+(de|del)?/i, ' ').trim();
-        cleanQuery = cleanQuery.replace(/Pabellón|Complejo\s+Deportivo|Polideportivo|Ayuntamiento|Ciutat\s+Esportiva|Palau\s+d'Esports|Centre\s+Esportiu/gi, ' ').trim();
+        if (type === 'destino') {
+            // 1. Quitar todo lo que vaya después de " vs " o " - " si parece separador de equipos
+            cleanQuery = cleanQuery.split(/\s+vs\.?\s+/i)[0]; 
+            if (cleanQuery.includes(' - ')) {
+               cleanQuery = cleanQuery.split(' - ')[0]; 
+            }
+            // 2. Quitar paréntesis
+            cleanQuery = cleanQuery.replace(/\(.*?\)/g, '');
+            // 3. Limpieza de palabras clave
+            cleanQuery = cleanQuery.replace(/Pabellón\s+Municipal\s+(de|del)?/i, ' ').trim();
+            cleanQuery = cleanQuery.replace(/Pabellón|Complejo\s+Deportivo|Polideportivo|Ayuntamiento|Ciutat\s+Esportiva|Palau\s+d'Esports|Centre\s+Esportiu/gi, ' ').trim();
+        }
         
         // 4. Normalizar espacios
         cleanQuery = cleanQuery.replace(/\s+/g, ' ').trim();
@@ -98,31 +97,34 @@ export default function MatchCard({ match, onPaymentUpdate }: MatchCardProps) {
            }
         };
 
-        // PASO 1: Intentar búsqueda de "Ayuntamiento" en regiones prioritarias
-        // Esto filtra drásticamente los resultados incorrectos de otras partes de España
         const regions = ['Comunidad Valenciana', 'Región de Murcia'];
         
-        // Estrategia A: [Query] Ayuntamiento + Región (La más precisa)
+        // Estrategia A: [Query] Ayuntamiento + Región
         for (const region of regions) {
           const res = await searchNominatim(`${cleanQuery} Ayuntamiento`, region);
           if (res) return { lat: res.lat, lon: res.lon, display_name: res.display_name, city_name: cleanQuery };
         }
 
-        // Estrategia B: [Query] (Solo ciudad) + Región
+        // Estrategia B: "Ayuntamiento de [Query]" + Región (Variante semántica)
+        for (const region of regions) {
+          const res = await searchNominatim(`Ayuntamiento de ${cleanQuery}`, region);
+          if (res) return { lat: res.lat, lon: res.lon, display_name: res.display_name, city_name: cleanQuery };
+        }
+
+        // Estrategia C: [Query] (Solo ciudad) + Región -- CRÍTICO PARA TORREVIEJA
         for (const region of regions) {
           const res = await searchNominatim(cleanQuery, region);
           if (res) return { lat: res.lat, lon: res.lon, display_name: res.display_name, city_name: cleanQuery };
         }
 
-        // Estrategia C: Global "Ayuntamiento" (Fallback si no está en CV/Murcia)
+        // Estrategia D: Globales (Fallbacks)
         let result = await searchNominatim(`${cleanQuery} Ayuntamiento`);
         if (result) return { lat: result.lat, lon: result.lon, display_name: result.display_name, city_name: cleanQuery };
 
-        // Estrategia D: Global exacta (Último recurso)
         result = await searchNominatim(cleanQuery);
         if (result) return { lat: result.lat, lon: result.lon, display_name: result.display_name, city_name: cleanQuery };
 
-        // Estrategia E: Split por comas si existen
+        // Estrategia E: Split por comas
         if (cleanQuery.includes(',')) {
            const firstPart = cleanQuery.split(',')[0].trim();
            result = await searchNominatim(`${firstPart} Ayuntamiento`);
