@@ -9,6 +9,10 @@ const inter = Inter({ subsets: ['latin'] });
 export const metadata: Metadata = {
   title: 'Control de Partidos - Árbitros',
   description: 'Gestión de designaciones arbitrales y estadísticas',
+  icons: {
+    icon: '/favicon.ico',
+    apple: '/icons/icon-192x192.png',
+  },
 };
 
 export default function RootLayout({
