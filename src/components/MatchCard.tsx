@@ -157,27 +157,35 @@ export default function MatchCard({ match, onPaymentUpdate }: MatchCardProps) {
       
       if (osrmData.code !== 'Ok') throw new Error('Error al calcular la ruta por carretera');
       
-      const distanceKm = osrmData.routes[0].distance / 1000; // OSRM devuelve metros
-      const price = settings.pricePerKm || 0.23;
-      const totalGas = (distanceKm * 2) * price; // Ida y vuelta
-      
-      // 5. Confirmar con el usuario
-      const confirmMsg = `📍 CÁLCULO DE GASOLINA\n\n` +
-                         `🏠 Origen: ${homeCoords.display_name?.split(',')[0]} (Ayuntamiento)\n` +
-                         `🏀 Destino: ${matchCoords.display_name?.split(',')[0]} (Ayuntamiento)\n` +
-                         `📏 Distancia: ${distanceKm.toFixed(1)} km (Solo ida)\n` +
-                         `💰 Precio: ${price} €/km\n\n` +
-                         `Total a cobrar (Ida y Vuelta): ${totalGas.toFixed(2)} €\n\n` +
-                         `¿Confirmar este importe?`;
-                         
-      if (window.confirm(confirmMsg)) {
-        setGasPayment(totalGas.toFixed(2));
-      }
-    } catch (err) {
-      console.error('Error calculating gas:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
-      alert(`Error al calcular: ${errorMessage || 'Inténtalo manualmente'}`);
-    } finally {
+       const distanceKm = osrmData.routes[0].distance / 1000; // OSRM devuelve metros
+       const price = settings.pricePerKm || 0.23;
+       const totalGas = (distanceKm * 2) * price; // Ida y vuelta
+       
+       let warning = '';
+       if (distanceKm > 100) warning = '⚠️ ¡ATENCIÓN! La distancia parece muy larga (>100km). Verifica las ubicaciones.\n';
+
+       // 5. Confirmar con el usuario (Debug Mode Mejorado)
+       const confirmMsg = `📍 CÁLCULO DE GASOLINA\n\n` +
+                          `${warning}` +
+                          `🏠 Origen: ${homeCoords.display_name?.split(',')[0]} (Ayuntamiento)\n` +
+                          `   [📍 ${homeCoords.display_name}]\n` +
+                          `   [Lat: ${homeCoords.lat}, Lon: ${homeCoords.lon}]\n\n` +
+                          `🏀 Destino: ${matchCoords.display_name?.split(',')[0]} (Ayuntamiento)\n` +
+                          `   [📍 ${matchCoords.display_name}]\n` +
+                          `   [Lat: ${matchCoords.lat}, Lon: ${matchCoords.lon}]\n\n` +
+                          `📏 Distancia: ${distanceKm.toFixed(1)} km (Solo ida)\n` +
+                          `💰 Precio: ${price} €/km\n` +
+                          `Total a cobrar (Ida y Vuelta): ${totalGas.toFixed(2)} €\n\n` +
+                          `¿Confirmar este importe?`;
+                          
+       if (window.confirm(confirmMsg)) {
+         setGasPayment(totalGas.toFixed(2));
+       }
+     } catch (err) {
+       console.error('Error calculating gas:', err);
+       const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
+       alert(`Error al calcular: ${errorMessage || 'Inténtalo manualmente'}`);
+     } finally {
       setCalculatingGas(false);
     }
   };
