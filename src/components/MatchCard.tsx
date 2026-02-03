@@ -167,12 +167,12 @@ export default function MatchCard({ match, onPaymentUpdate }: MatchCardProps) {
        // 5. Confirmar con el usuario (Debug Mode Mejorado)
        const confirmMsg = `📍 CÁLCULO DE GASOLINA\n\n` +
                           `${warning}` +
-                          `🏠 Origen: ${homeCoords.display_name?.split(',')[0]} (Ayuntamiento)\n` +
-                          `   [📍 ${homeCoords.display_name}]\n` +
-                          `   [Lat: ${homeCoords.lat}, Lon: ${homeCoords.lon}]\n\n` +
-                          `🏀 Destino: ${matchCoords.display_name?.split(',')[0]} (Ayuntamiento)\n` +
-                          `   [📍 ${matchCoords.display_name}]\n` +
-                          `   [Lat: ${matchCoords.lat}, Lon: ${matchCoords.lon}]\n\n` +
+                          `❓ Input Original: "${venueCity}"\n` +
+                          `--------------------------------------------------\n` +
+                          `🏠 Origen: ${homeCoords.city_name} (Detectado: ${homeCoords.display_name?.split(',')[0]})\n` +
+                          `   [📍 ${homeCoords.display_name}]\n\n` +
+                          `🏀 Destino: ${matchCoords.city_name} (Detectado: ${matchCoords.display_name?.split(',')[0]})\n` +
+                          `   [📍 ${matchCoords.display_name}]\n\n` +
                           `📏 Distancia: ${distanceKm.toFixed(1)} km (Solo ida)\n` +
                           `💰 Precio: ${price} €/km\n` +
                           `Total a cobrar (Ida y Vuelta): ${totalGas.toFixed(2)} €\n\n` +
