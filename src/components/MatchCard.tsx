@@ -2,6 +2,12 @@
 
 import { useState } from 'react';
 
+interface Partner {
+  role: string;
+  name: string;
+  phone?: string;
+}
+
 interface MatchCardProps {
   match: {
     id: string;
@@ -15,11 +21,7 @@ interface MatchCardProps {
     role: string;
     category: { name: string };
     division: { name: string };
-    partners?: Array<{
-      role: string;
-      name: string;
-      phone?: string;
-    }> | any;
+    partners?: Partner[] | null;
     payment?: {
       matchPayment: number;
       gasPayment: number;
@@ -57,10 +59,21 @@ export default function MatchCard({ match, onPaymentUpdate }: MatchCardProps) {
       const venueCity = match.venueAddress || match.venue;
 
       // 3. Geocodificar ciudades y obtener distancia (usando Nominatim y OSRM - servicios gratuitos)
-      const getCoords = async (city: string) => {
-        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(city + ', España')}&limit=1`);
+      const getCoords = async (query: string) => {
+        // Limpiar la consulta para mejorar resultados
+        const cleanQuery = query.replace(/Pabellón Municipal (de|del)/i, '').trim();
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(cleanQuery + ', España')}&limit=1`);
         const data = await res.json();
         if (data.length > 0) return { lat: data[0].lat, lon: data[0].lon };
+        
+        // Si falla, intentar una búsqueda más genérica (solo la ciudad)
+        if (query.includes(',')) {
+          const cityOnly = query.split(',')[0].trim();
+          const res2 = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(cityOnly + ', España')}&limit=1`);
+          const data2 = await res2.json();
+          if (data2.length > 0) return { lat: data2[0].lat, lon: data2[0].lon };
+        }
+        
         return null;
       };
 
@@ -68,6 +81,7 @@ export default function MatchCard({ match, onPaymentUpdate }: MatchCardProps) {
       const matchCoords = await getCoords(venueCity);
 
       if (!homeCoords || !matchCoords) {
+        console.error('Geocoding failed for:', { home: settings.homeCity, match: venueCity });
         throw new Error('No se pudo localizar una de las ciudades.');
       }
 

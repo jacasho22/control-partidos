@@ -19,7 +19,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ message: 'Datos inválidos' }, { status: 400 });
     }
 
-    const userId = (session.user as any)?.id;
+    const userId = session.user?.id;
     console.log(`Guardando para usuario ID: ${userId}`);
 
     if (!userId) {
@@ -109,7 +109,7 @@ export async function POST(req: Request) {
             divisionId: division.id,
             role: matchData.role,
             matchday: matchData.matchday,
-            partners: matchData.partners as any,
+            partners: matchData.partners,
           },
           create: {
             matchNumber: matchData.matchNumber,
@@ -123,12 +123,12 @@ export async function POST(req: Request) {
             divisionId: division.id,
             role: matchData.role,
             matchday: matchData.matchday,
-            partners: matchData.partners as any,
+            partners: matchData.partners,
             userId: userId,
           },
         });
         savedMatches.push(match);
-      } catch (upsertError: any) {
+      } catch (upsertError) {
         console.error(`Error en upsert del partido ${matchData.matchNumber}:`, upsertError);
         throw upsertError; // Re-lanzar para capturarlo en el catch principal
       }
@@ -138,13 +138,12 @@ export async function POST(req: Request) {
       message: `${savedMatches.length} partidos guardados correctamente`,
       count: savedMatches.length 
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error('ERROR FATAL AL GUARDAR PARTIDOS:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
     return NextResponse.json({ 
       message: 'Error al procesar el guardado de partidos',
-      error: error.message,
-      code: error.code,
-      meta: error.meta
+      error: errorMessage
     }, { status: 500 });
   }
 }

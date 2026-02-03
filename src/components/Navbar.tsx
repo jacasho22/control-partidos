@@ -9,17 +9,8 @@ export default function Navbar() {
   return (
     <nav className="navbar">
       <div className="container navbar-container">
-        <Link href="/" className="logo" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <img 
-            src="/fbcv-logo.png" 
-            alt="FBCV" 
-            style={{ height: '40px', width: 'auto' }}
-            onError={(e) => (e.currentTarget.style.display = 'none')} 
-          />
-          <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.1 }}>
-            <span style={{ fontSize: '1rem' }}>Control</span>
-            <span style={{ fontSize: '1.2rem', color: 'var(--primary)' }}>Partidos</span>
-          </div>
+        <Link href="/" className="logo">
+          🏀 Control<span>Partidos</span>
         </Link>
         
         <div className="nav-links">
