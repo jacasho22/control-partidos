@@ -54,62 +54,91 @@ export default function MatchCard({ match, onPaymentUpdate }: MatchCardProps) {
         return;
       }
 
-      // 2. Extraer ciudad del partido (asumiendo que está en el venue o venueAddress)
-      // Usualmente "Pabellón Municipal de [Ciudad]"
+  const handleAutoCalculateGas = async () => {
+    setCalculatingGas(true);
+    try {
+      // 1. Obtener ajustes del usuario
+      const settingsRes = await fetch('/api/user/settings');
+      if (!settingsRes.ok) throw new Error('No se pudieron obtener los ajustes');
+      const settings = await settingsRes.json();
+      
+      if (!settings.homeCity) {
+        alert('Por favor, configura tu ciudad de residencia en Ajustes primero.');
+        setCalculatingGas(false);
+        return;
+      }
+
+      // 2. Extraer ciudad del partido
       const venueCity = match.venueAddress || match.venue;
 
-      // 3. Geocodificar ciudades y obtener distancia (usando Nominatim y OSRM - servicios gratuitos)
-      const getCoords = async (query: string) => {
-        // Limpiar la consulta para evitar errores como buscar "Cabo" en Galicia
+      // 3. Geocodificar: Ayuntamiento a Ayuntamiento
+      const getCoords = async (query: string, type: 'origen' | 'destino') => {
+        // Limpieza básica del nombre de la ciudad
         let cleanQuery = query.replace(/Pabellón Municipal (de|del)/i, '').trim();
-        cleanQuery = cleanQuery.replace(/Pabellón|Complejo Deportivo|Polideportivo/i, '').trim();
+        cleanQuery = cleanQuery.replace(/Pabellón|Complejo Deportivo|Polideportivo|Ayuntamiento/i, '').trim();
         
-        // Si el nombre empieza por "CABO", es probable que sea una trampa para Nominatim (buscará cabos en toda España)
-        // Intentamos quitar "CABO" si va seguido de un nombre de ciudad conocido
+        // Quitar "CABO" si es el inicio para evitar falsos positivos lejanos
         if (cleanQuery.toUpperCase().startsWith('CABO ')) {
           cleanQuery = cleanQuery.substring(5).trim();
         }
+        
+        // Estrategia 1: Buscar "[Ciudad] Ayuntamiento"
+        let searchQ = `${cleanQuery} Ayuntamiento`;
+        console.log(`Geocoding ${type}:`, searchQ);
+        
+        // Función helper para buscar y filtrar por región
+        const fetchAndFilter = async (q: string) => {
+          const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&countrycodes=es&addressdetails=1&limit=5`);
+          const data = await res.json();
+          
+          if (data.length === 0) return null;
 
-        console.log('Geocoding query:', cleanQuery);
-        
-        // Buscamos específicamente en España
-        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(cleanQuery + ', España')}&limit=1&countrycodes=es`);
-        const data = await res.json();
-        
-        if (data.length > 0) {
-          return { 
-            lat: data[0].lat, 
-            lon: data[0].lon, 
-            display_name: data[0].display_name 
-          };
-        }
-        
-        // Fallback: Si hay coma, usar solo la primera parte
-        if (cleanQuery.includes(',')) {
-          const firstPart = cleanQuery.split(',')[0].trim();
-          const res2 = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(firstPart + ', España')}&limit=1&countrycodes=es`);
-          const data2 = await res2.json();
-          if (data2.length > 0) return { lat: data2[0].lat, lon: data2[0].lon, display_name: data2[0].display_name };
+          // Priorizar Comunidad Valenciana o Murcia
+          const priorityRegions = ['Comunidad Valenciana', 'Valenciana', 'Alicante', 'Castellón', 'Valencia', 'Región de Murcia', 'Murcia'];
+          
+          const bestMatch = data.find((item: any) => {
+            const state = item.address?.state || item.address?.region || '';
+            const county = item.address?.county || '';
+            return priorityRegions.some(r => state.includes(r) || county.includes(r));
+          });
+          
+          return bestMatch || data[0]; // Si no hay en la región, devolver el primero (fallback)
+        };
+
+        let result = await fetchAndFilter(searchQ);
+
+        // Estrategia 2: Si falla, buscar solo la ciudad
+        if (!result) {
+          console.log(`Geocoding fallback 1 for ${type}: ${cleanQuery}`);
+          result = await fetchAndFilter(cleanQuery);
         }
 
-        // Fallback 2: Usar la última palabra
-        const parts = cleanQuery.split(/\s+/);
-        if (parts.length > 1) {
-          const lastWord = parts[parts.length - 1].trim();
-          const res3 = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(lastWord + ', España')}&limit=1&countrycodes=es`);
-          const data3 = await res3.json();
-          if (data3.length > 0) return { lat: data3[0].lat, lon: data3[0].lon, display_name: data3[0].display_name };
+        // Estrategia 3: Si tiene coma, probar solo la primera parte
+        if (!result && cleanQuery.includes(',')) {
+           const firstPart = cleanQuery.split(',')[0].trim();
+           console.log(`Geocoding fallback 2 for ${type}: ${firstPart}`);
+           result = await fetchAndFilter(`${firstPart} Ayuntamiento`);
+           if (!result) result = await fetchAndFilter(firstPart);
+        }
+
+        if (result) {
+           return {
+             lat: result.lat,
+             lon: result.lon,
+             display_name: result.display_name,
+             city_name: cleanQuery
+           };
         }
         
         return null;
       };
 
-      const homeCoords = await getCoords(settings.homeCity);
-      const matchCoords = await getCoords(venueCity);
+      const homeCoords = await getCoords(settings.homeCity, 'origen');
+      const matchCoords = await getCoords(venueCity, 'destino');
 
       if (!homeCoords || !matchCoords) {
         console.error('Geocoding failed for:', { home: settings.homeCity, match: venueCity });
-        throw new Error('No se pudo localizar tu ciudad o la del partido.');
+        throw new Error(`No se pudo localizar: ${!homeCoords ? 'Tu ciudad' : 'Ciudad del partido'}`);
       }
 
       // 4. Obtener distancia por carretera mediante OSRM
@@ -122,19 +151,21 @@ export default function MatchCard({ match, onPaymentUpdate }: MatchCardProps) {
       const price = settings.pricePerKm || 0.23;
       const totalGas = (distanceKm * 2) * price; // Ida y vuelta
       
-      // 5. Confirmar con el usuario para evitar errores de geocodificación
-      const confirmMsg = `Distancia calculada: ${distanceKm.toFixed(1)} km (solo ida).\n` +
-                         `Origen: ${settings.homeCity}\n` +
-                         `Destino detectado: ${matchCoords.display_name?.split(',')[0]}\n\n` +
-                         `Total Gasolina (ida y vuelta a ${price}€/km): ${totalGas.toFixed(2)}€\n\n` +
-                         `¿Es correcto?`;
+      // 5. Confirmar con el usuario
+      const confirmMsg = `📍 CÁLCULO DE GASOLINA\n\n` +
+                         `🏠 Origen: ${homeCoords.display_name?.split(',')[0]} (Ayuntamiento)\n` +
+                         `🏀 Destino: ${matchCoords.display_name?.split(',')[0]} (Ayuntamiento)\n` +
+                         `📏 Distancia: ${distanceKm.toFixed(1)} km (Solo ida)\n` +
+                         `💰 Precio: ${price} €/km\n\n` +
+                         `Total a cobrar (Ida y Vuelta): ${totalGas.toFixed(2)} €\n\n` +
+                         `¿Confirmar este importe?`;
                          
       if (window.confirm(confirmMsg)) {
         setGasPayment(totalGas.toFixed(2));
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error calculating gas:', err);
-      alert('Error al calcular la gasolina automáticamente. Por favor, revísalo manualmente.');
+      alert(`Error al calcular: ${err.message || 'Inténtalo manualmente'}`);
     } finally {
       setCalculatingGas(false);
     }
