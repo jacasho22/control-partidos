@@ -39,10 +39,34 @@ export async function parseDesignationPDF(buffer: Buffer): Promise<ParsedMatch[]
     }
 
     // 1. Extraer Local y Dirección Global (Suelen estar al principio)
+    // 1. Extraer Local y Dirección Global (Suelen estar al principio)
     const venueRegex = /PARA LOS PARTIDOS SIGUIENTES DEL DÍA:\n(.*?)\n(.*?)\n/s;
     const venueMatch = text.match(venueRegex);
-    const globalVenue = venueMatch ? venueMatch[1].trim() : '';
-    const globalAddress = venueMatch ? venueMatch[2].trim() : '';
+    let globalVenue = venueMatch ? venueMatch[1].trim() : '';
+    let globalAddress = venueMatch ? venueMatch[2].trim() : '';
+
+    // FALLBACK: Si el regex estricto falla, buscar patrón de dirección por fuerza bruta en el encabezado
+    if (!globalAddress) {
+       console.log('Regex estricto de cabecera falló. Intentando búsqueda por Código Postal...');
+       const headerText = text.substring(0, 1000); // Analizar solo el principio
+       const lines = headerText.split('\n');
+       
+       for (let i = 0; i < lines.length; i++) {
+         const line = lines[i].trim();
+         // Buscar línea con Código Postal (5 dígitos)
+         if (line.match(/\b\d{5}\b/)) {
+            globalAddress = line;
+            console.log(`Dirección detectada por CP: ${globalAddress}`);
+            
+            // Asumir que la línea anterior es el nombre del pabellón si está vacía
+            if (!globalVenue && i > 0) {
+              globalVenue = lines[i-1].trim();
+              console.log(`Pabellón inferido: ${globalVenue}`);
+            }
+            break;
+         }
+       }
+    }
 
     // 2. Extraer Nombre del Árbitro para buscar su función
     const userMatch = text.match(/COMITÉ DE ÁRBITROS\n\d+\n(.*?)\nHAS SIDO DESIGNADO/);
