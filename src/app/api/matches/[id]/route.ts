@@ -42,4 +42,48 @@ export async function DELETE(
     console.error('Error deleting match:', error);
     return NextResponse.json({ message: 'Error al eliminar el partido' }, { status: 500 });
   }
+  }
+}
+
+export async function PATCH(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const session = await getServerSession(authOptions);
+  if (!session) return NextResponse.json({ message: 'No autorizado' }, { status: 401 });
+
+  const userId = (session.user as { id: string }).id;
+  const { id: matchId } = await params;
+
+  try {
+    const body = await req.json();
+    const { venueAddress } = body;
+
+    // Verificar que el partido pertenece al usuario
+    const match = await prisma.match.findUnique({
+      where: { id: matchId },
+    });
+
+    if (!match) {
+      return NextResponse.json({ message: 'Partido no encontrado' }, { status: 404 });
+    }
+
+    if (match.userId !== userId) {
+      return NextResponse.json({ message: 'No tienes permiso para editar este partido' }, { status: 403 });
+    }
+
+    const updatedMatch = await prisma.match.update({
+      where: { id: matchId },
+      data: {
+        venueAddress: venueAddress !== undefined ? venueAddress : match.venueAddress,
+        // También actualizamos venue si el usuario lo editó, para consistencia
+        venue: venueAddress !== undefined ? venueAddress : match.venue
+      },
+    });
+
+    return NextResponse.json({ message: 'Partido actualizado correctamente', match: updatedMatch });
+  } catch (error) {
+    console.error('Error updating match:', error);
+    return NextResponse.json({ message: 'Error al actualizar el partido' }, { status: 500 });
+  }
 }
