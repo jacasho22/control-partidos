@@ -71,7 +71,7 @@ export default function MatchCard({ match, onPaymentUpdate }: MatchCardProps) {
         }
         
         // Estrategia 1: Buscar "[Ciudad] Ayuntamiento"
-        let searchQ = `${cleanQuery} Ayuntamiento`;
+        const searchQ = `${cleanQuery} Ayuntamiento`;
         console.log(`Geocoding ${type}:`, searchQ);
         
         // Función helper para buscar y filtrar por región
@@ -84,7 +84,7 @@ export default function MatchCard({ match, onPaymentUpdate }: MatchCardProps) {
           // Priorizar Comunidad Valenciana o Murcia
           const priorityRegions = ['Comunidad Valenciana', 'Valenciana', 'Alicante', 'Castellón', 'Valencia', 'Región de Murcia', 'Murcia'];
           
-          const bestMatch = data.find((item: any) => {
+          const bestMatch = data.find((item: { address?: { state?: string, region?: string, county?: string } }) => {
             const state = item.address?.state || item.address?.region || '';
             const county = item.address?.county || '';
             return priorityRegions.some(r => state.includes(r) || county.includes(r));
@@ -151,9 +151,10 @@ export default function MatchCard({ match, onPaymentUpdate }: MatchCardProps) {
       if (window.confirm(confirmMsg)) {
         setGasPayment(totalGas.toFixed(2));
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error calculating gas:', err);
-      alert(`Error al calcular: ${err.message || 'Inténtalo manualmente'}`);
+      const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
+      alert(`Error al calcular: ${errorMessage || 'Inténtalo manualmente'}`);
     } finally {
       setCalculatingGas(false);
     }
