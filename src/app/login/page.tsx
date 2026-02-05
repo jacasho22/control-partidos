@@ -1,11 +1,12 @@
 'use client';
 
-import { signIn } from 'next-auth/react';
+import { signIn, useSession } from 'next-auth/react';
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
 function LoginForm() {
+  const { status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [formData, setFormData] = useState({ licenseNumber: '', password: '' });
@@ -14,8 +15,19 @@ function LoginForm() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    if (status === 'authenticated') {
+      router.replace('/dashboard');
+    }
+  }, [status, router]);
+
+  useEffect(() => {
     if (searchParams.get('registered')) {
-      setSuccess('¡Registro completado! Ya puedes iniciar sesión.');
+      // Use a small timeout to avoid immediate state update during render if strictly enforced
+      // OR just set it. Next.js usually handles this okay in effects, but let's be safe.
+      const timer = setTimeout(() => {
+          setSuccess('¡Registro completado! Ya puedes iniciar sesión.');
+      }, 0);
+      return () => clearTimeout(timer);
     }
   }, [searchParams]);
 
