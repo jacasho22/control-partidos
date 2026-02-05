@@ -37,6 +37,7 @@ export default function MatchCard({ match, onPaymentUpdate }: MatchCardProps) {
   const [loading, setLoading] = useState(false);
   const [calculatingGas, setCalculatingGas] = useState(false);
   const [isEditingAddress, setIsEditingAddress] = useState(false);
+  const [showMapSelection, setShowMapSelection] = useState(false);
   const [editedAddress, setEditedAddress] = useState(match.venueAddress || match.venue);
 
   // Asegurar que partners sea un array si viene como JSON string o similar
@@ -338,41 +339,116 @@ export default function MatchCard({ match, onPaymentUpdate }: MatchCardProps) {
             </p>
           )}
         
-        <div style={{ marginBottom: '1rem' }}>
-          <a 
-            href={`waze://?q=${encodeURIComponent(match.venue)}&navigate=yes`}
-            onClick={(e) => {
-              // Fallback to web link if scheme is not supported (desktop or no app)
-              const webUrl = `https://www.waze.com/ul?q=${encodeURIComponent(match.venue)}&navigate=yes`;
-              if (!navigator.userAgent.match(/(iPhone|iPod|iPad|Android)/)) {
-                window.open(webUrl, '_blank');
-                e.preventDefault();
-              } else {
-                // On mobile, try to open app, then fallback to web
-                setTimeout(() => {
-                  window.location.href = webUrl;
-                }, 500);
-              }
-            }}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn"
-            style={{ 
-              fontSize: '0.8rem', 
-              padding: '0.4rem 0.8rem', 
-              background: '#f1f5f9', 
-              color: '#475569',
-              border: '1px solid #e2e8f0',
-              width: '100%',
-              marginTop: '0.25rem'
-            }}
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-              <circle cx="12" cy="10" r="3"></circle>
-            </svg>
-            Abrir en Waze
-          </a>
+        <div style={{ marginBottom: '1rem', position: 'relative' }}>
+          {!showMapSelection ? (
+            <button 
+              onClick={() => setShowMapSelection(true)}
+              className="btn"
+              style={{ 
+                fontSize: '0.8rem', 
+                padding: '0.4rem 0.8rem', 
+                background: '#f1f5f9', 
+                color: '#475569',
+                border: '1px solid #e2e8f0',
+                width: '100%',
+                marginTop: '0.25rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.5rem'
+              }}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon>
+              </svg>
+              Cómo llegar
+            </button>
+          ) : (
+            <div style={{ 
+              background: '#fff', 
+              border: '1px solid #e2e8f0', 
+              borderRadius: '8px', 
+              padding: '0.5rem',
+              marginTop: '0.25rem',
+              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+            }}>
+              <p style={{ fontSize: '0.8rem', textAlign: 'center', marginBottom: '0.5rem', fontWeight: 500, color: '#64748b' }}>Elige navegador:</p>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <a 
+                  href={`waze://?q=${encodeURIComponent(match.venue)}&navigate=yes`}
+                  onClick={(e) => {
+                    const webUrl = `https://www.waze.com/ul?q=${encodeURIComponent(match.venue)}&navigate=yes`;
+                    if (!navigator.userAgent.match(/(iPhone|iPod|iPad|Android)/)) {
+                      window.open(webUrl, '_blank');
+                      e.preventDefault();
+                    } else {
+                      setTimeout(() => { window.location.href = webUrl; }, 500);
+                    }
+                  }}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn"
+                  style={{ 
+                    flex: 1,
+                    fontSize: '0.8rem', 
+                    padding: '0.4rem', 
+                    background: '#e0f2fe', 
+                    color: '#0369a1',
+                    border: '1px solid #bae6fd',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '0.25rem'
+                  }}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                    <circle cx="12" cy="10" r="3"></circle>
+                  </svg>
+                  Waze
+                </a>
+                <a 
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(match.venue)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn"
+                  style={{ 
+                    flex: 1,
+                    fontSize: '0.8rem', 
+                    padding: '0.4rem', 
+                    background: '#dcfce7', 
+                    color: '#15803d',
+                    border: '1px solid #86efac',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '0.25rem'
+                  }}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                    <circle cx="12" cy="10" r="3"></circle>
+                  </svg>
+                  Maps
+                </a>
+              </div>
+              <button 
+                onClick={() => setShowMapSelection(false)}
+                style={{
+                  width: '100%',
+                  marginTop: '0.5rem',
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '0.75rem',
+                  color: '#94a3b8',
+                  cursor: 'pointer'
+                }}
+              >
+                Cancelar
+              </button>
+            </div>
+          )}
         </div>
 
         <p style={{ fontSize: '0.85rem', marginBottom: '0.5rem' }}>👤 Tu función: <strong>{match.role}</strong></p>
