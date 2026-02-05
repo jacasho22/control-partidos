@@ -115,6 +115,113 @@ export default function SettingsPage() {
           </button>
         </form>
       </div>
+
+      <div className="card" style={{ marginTop: '2rem' }}>
+        <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem' }}>Cambiar Contraseña</h2>
+        <PasswordChangeForm />
+      </div>
     </div>
+  );
+}
+
+function PasswordChangeForm() {
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState({ type: '', text: '' });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setMessage({ type: '', text: '' });
+
+    if (newPassword !== confirmPassword) {
+      setMessage({ type: 'error', text: 'Las nuevas contraseñas no coinciden' });
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      setMessage({ type: 'error', text: 'La contraseña debe tener al menos 6 caracteres' });
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const res = await fetch('/api/user/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ currentPassword, newPassword }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setMessage({ type: 'success', text: 'Contraseña actualizada correctamente' });
+        setCurrentPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+      } else {
+        setMessage({ type: 'error', text: data.message || 'Error al actualizar' });
+      }
+    } catch (err) {
+      setMessage({ type: 'error', text: 'Error de conexión' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <div className="form-group">
+        <label>Contraseña Actual</label>
+        <input
+          type="password"
+          value={currentPassword}
+          onChange={(e) => setCurrentPassword(e.target.value)}
+          required
+        />
+      </div>
+      <div className="form-group">
+        <label>Nueva Contraseña</label>
+        <input
+          type="password"
+          value={newPassword}
+          onChange={(e) => setNewPassword(e.target.value)}
+          required
+        />
+      </div>
+      <div className="form-group">
+        <label>Confirmar Nueva Contraseña</label>
+        <input
+          type="password"
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+          required
+        />
+      </div>
+
+      {message.text && (
+        <div style={{ 
+          padding: '0.75rem', 
+          borderRadius: 'var(--radius)', 
+          marginBottom: '1rem',
+          background: message.type === 'success' ? '#d1fae5' : '#fee2e2',
+          color: message.type === 'success' ? '#065f46' : '#991b1b',
+          fontSize: '0.9rem'
+        }}>
+          {message.text}
+        </div>
+      )}
+
+      <button 
+        type="submit" 
+        className="btn"
+        style={{ width: '100%', background: 'var(--text)', color: 'var(--bg)' }}
+        disabled={loading}
+      >
+        {loading ? 'Actualizando...' : 'Actualizar Contraseña'}
+      </button>
+    </form>
   );
 }
