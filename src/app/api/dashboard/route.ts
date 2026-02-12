@@ -32,7 +32,36 @@ export async function GET() {
     }
 
     const now = new Date();
-    const nextMatch = allMatches.find(m => new Date(m.date) >= now);
+    
+    // Lógica para encontrar el próximo partido:
+    // 1. Debe ser en el futuro (incluyendo hoy pero después de la hora de inicio)
+    // 2. Debe ser dentro de la semana actual (hasta el domingo a las 23:59:59)
+    const getMatchDateTime = (m: any) => {
+      const d = new Date(m.date);
+      const [hours, minutes] = m.time.split(':').map(Number);
+      d.setUTCHours(hours, minutes, 0, 0);
+      return d;
+    };
+
+    const nextMatchCandidate = allMatches
+      .map(m => ({ ...m, fullDateTime: getMatchDateTime(m) }))
+      .filter(m => m.fullDateTime >= now)
+      .sort((a, b) => a.fullDateTime.getTime() - b.fullDateTime.getTime())[0];
+
+    let nextMatch = null;
+    if (nextMatchCandidate) {
+      const endOfWeek = new Date(now);
+      const day = now.getUTCDay(); // 0 (Dom) a 6 (Sáb)
+      const daysUntilSunday = (7 - day) % 7;
+      endOfWeek.setUTCDate(now.getUTCDate() + daysUntilSunday);
+      endOfWeek.setUTCHours(23, 59, 59, 999);
+
+      if (nextMatchCandidate.fullDateTime <= endOfWeek) {
+        // Quitamos la propiedad temporal antes de enviarla
+        const { fullDateTime, ...matchWithoutFullDate } = nextMatchCandidate;
+        nextMatch = matchWithoutFullDate;
+      }
+    }
     
     // Sort descending for recent matches and earnings calculation
     const sortedMatchesDesc = [...allMatches].sort((a, b) => 
