@@ -6,11 +6,6 @@ on:
   pull_request:
     branches: [ main, master ]
 
-env:
-  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-  DATABASE_URL: ${{ secrets.DATABASE_URL || 'postgresql://dummy:dummy@localhost:5432/dummy' }}
-
 jobs:
   quality-assurance:
     name: 🛡️ Quality Assurance (CI)
@@ -23,15 +18,16 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
 
       - name: 📦 Install Dependencies
-        run: npm ci
+        run: npm install
         env:
           PRISMA_SKIP_POSTINSTALL_GENERATE: 1
 
       - name: 💎 Prisma Client Generation
         run: npx prisma generate
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
       - name: 🔍 Lint Check
         run: npm run lint
@@ -42,8 +38,9 @@ jobs:
       - name: 🏗️ Production Build Check
         run: npm run build
         env:
-          NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET || 'static-secret-for-build' }}
-          NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL || 'http://localhost:3000' }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
+          NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL }}
 
   deploy:
     name: 🚀 Continuous Deployment (CD)
