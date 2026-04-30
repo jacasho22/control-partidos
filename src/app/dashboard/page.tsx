@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import WhatsNewModal from '@/components/WhatsNewModal';
 
 interface Match {
   id: string;
@@ -27,6 +28,8 @@ interface DashboardData {
   totalEarnings: number;
   topCategory: string;
   totalMatches: number;
+  showUpdateModal: boolean;
+  currentVersion: string;
 }
 
 function DashboardContent() {
@@ -34,6 +37,7 @@ function DashboardContent() {
   const router = useRouter();
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -44,6 +48,7 @@ function DashboardContent() {
         .then(d => {
           setData(d);
           setLoading(false);
+          if (d.showUpdateModal) setShowModal(true);
         })
         .catch(err => {
           console.error(err);
@@ -110,6 +115,13 @@ function DashboardContent() {
           </div>
         </div>
       </div>
+
+      {showModal && data && (
+        <WhatsNewModal 
+          version={data.currentVersion} 
+          onClose={() => setShowModal(false)} 
+        />
+      )}
     </div>
   );
 }

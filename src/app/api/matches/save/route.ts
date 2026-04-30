@@ -2,96 +2,62 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { getAutomaticFee } from '@/lib/tariffService';
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
-  console.log('Save Route - Session object:', JSON.stringify(session, null, 2));
   if (!session) {
     return NextResponse.json({ message: 'No autorizado' }, { status: 401 });
   }
 
   try {
     const { matches } = await req.json();
-    console.log('--- Iniciando guardado de partidos ---');
-    console.log(`Recibidos ${matches?.length} partidos para guardar`);
-
     if (!matches || !Array.isArray(matches)) {
       return NextResponse.json({ message: 'Datos inválidos' }, { status: 400 });
     }
 
     const userId = session.user?.id;
-    console.log(`Guardando para usuario ID: ${userId}`);
-
     if (!userId) {
-      console.error('ERROR: No se encontró el userId en la sesión');
-      return NextResponse.json({ message: 'Error de autenticación: No se encontró el ID de usuario' }, { status: 401 });
+      return NextResponse.json({ message: 'Error de autenticación' }, { status: 401 });
     }
-    const savedMatches = [];
 
-    for (const matchData of matches) {
-      console.log(`--- Procesando partido ${matchData.matchNumber} ---`);
-      
-      // 1. Encontrar o crear categoría
-      const catName = (matchData.category || 'Desconocida').trim();
-      let category = await prisma.category.findFirst({
-        where: { name: catName },
-      });
+    const result = await prisma.$transaction(async (tx) => {
+      const saved = [];
+      for (const matchData of matches) {
+        // 1. Categoría y División
+        const catName = (matchData.category || 'Desconocida').trim();
+        let category = await tx.category.findFirst({ where: { name: catName } });
+        if (!category) {
+          category = await tx.category.create({
+            data: {
+              name: catName,
+              gender: catName.toLowerCase().includes('masc') ? 'MASCULINO' : 
+                      catName.toLowerCase().includes('fem') ? 'FEMENINO' : 'MIXTO',
+            },
+          });
+        }
 
-      if (!category) {
-        console.log(`Categoría no encontrada: "${catName}". Creando...`);
-        category = await prisma.category.create({
-          data: {
-            name: catName,
-            gender: catName.toLowerCase().includes('masc') ? 'MASCULINO' : 
-                    catName.toLowerCase().includes('fem') ? 'FEMENINO' : 'MIXTO',
-          },
+        const divName = (matchData.division || 'Sin división').trim();
+        let division = await tx.division.findFirst({
+          where: { name: divName, categoryId: category.id },
         });
-      }
+        if (!division) {
+          division = await tx.division.create({
+            data: { name: divName, level: 0, categoryId: category.id },
+          });
+        }
 
-      // 2. Encontrar o crear división
-      const divName = (matchData.division || 'Sin división').trim();
-      let division = await prisma.division.findFirst({
-        where: {
-          name: divName,
-          categoryId: category.id,
-        },
-      });
+        if (!matchData.matchNumber || !matchData.date || !matchData.time || !matchData.localTeam || !matchData.visitorTeam || !matchData.role) {
+          continue;
+        }
 
-      if (!division) {
-        console.log(`División no encontrada: "${divName}". Creando...`);
-        division = await prisma.division.create({
-          data: {
-            name: divName,
-            level: 0,
-            categoryId: category.id,
-          },
-        });
-      }
+        const dateParts = matchData.date.split('/');
+        if (dateParts.length !== 3) continue;
+        const [day, month, year] = dateParts;
+        const dateObj = new Date(`${year}-${month}-${day}T00:00:00Z`);
 
-      // Validar datos mínimos obligatorios para el modelo Match
-      if (!matchData.matchNumber || !matchData.date || !matchData.time || !matchData.localTeam || !matchData.visitorTeam || !matchData.role) {
-        console.warn(`Faltan campos obligatorios para el partido ${matchData.matchNumber}`);
-        continue;
-      }
-
-      // Parsear fecha DD/MM/YYYY a objeto Date
-      const dateParts = matchData.date.split('/');
-      if (dateParts.length !== 3) {
-        console.warn(`Formato de fecha inválido: ${matchData.date}`);
-        continue;
-      }
-      const [day, month, year] = dateParts;
-      const dateObj = new Date(`${year}-${month}-${day}T00:00:00Z`);
-
-      if (isNaN(dateObj.getTime())) {
-        console.warn(`Fecha inválida: ${matchData.date}`);
-        continue;
-      }
-
-      console.log(`Realizando upsert para partido ${matchData.matchNumber}...`);
-      // 3. Upsert del partido
-      try {
-        const match = await prisma.match.upsert({
+        // 3. Upsert del partido con colores
+        const match = await tx.match.upsert({
           where: {
             matchNumber_userId: {
               matchNumber: matchData.matchNumber,
@@ -110,6 +76,9 @@ export async function POST(req: Request) {
             role: matchData.role,
             matchday: matchData.matchday,
             partners: matchData.partners,
+            localColor: matchData.localColor,
+            visitorColor: matchData.visitorColor,
+            deletedAt: null,
           },
           create: {
             matchNumber: matchData.matchNumber,
@@ -124,19 +93,46 @@ export async function POST(req: Request) {
             role: matchData.role,
             matchday: matchData.matchday,
             partners: matchData.partners,
+            localColor: matchData.localColor,
+            visitorColor: matchData.visitorColor,
             userId: userId,
           },
         });
-        savedMatches.push(match);
-      } catch (upsertError) {
-        console.error(`Error en upsert del partido ${matchData.matchNumber}:`, upsertError);
-        throw upsertError; // Re-lanzar para capturarlo en el catch principal
+
+        // 4. Automatización del Importe (Pago)
+        const autoFee = getAutomaticFee(catName, matchData.role);
+        
+        // Verificar si ya existe un pago con importe manual
+        const existingPayment = await tx.payment.findUnique({
+          where: { matchId: match.id }
+        });
+
+        if (!existingPayment) {
+          // Crear pago inicial con tarifa automática
+          await tx.payment.create({
+            data: {
+              matchId: match.id,
+              userId: userId,
+              matchPayment: autoFee,
+              gasPayment: 0, // Gasolina siempre manual
+            }
+          });
+        } else if (existingPayment.matchPayment === 0) {
+          // Si existe pero el importe es 0, actualizamos con el automático
+          await tx.payment.update({
+            where: { matchId: match.id },
+            data: { matchPayment: autoFee }
+          });
+        }
+
+        saved.push(match);
       }
-    }
+      return saved;
+    });
 
     return NextResponse.json({ 
-      message: `${savedMatches.length} partidos guardados correctamente`,
-      count: savedMatches.length 
+      message: `${result.length} partidos guardados correctamente con importes automatizados`,
+      count: result.length 
     });
   } catch (error) {
     console.error('ERROR FATAL AL GUARDAR PARTIDOS:', error);

@@ -11,7 +11,7 @@ export async function GET() {
 
   try {
     const matches = await prisma.match.findMany({
-      where: {}
+      where: { deletedAt: null }
     });
 
     const knownRoles = [

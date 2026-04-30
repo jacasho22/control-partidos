@@ -15,7 +15,8 @@ export async function GET() {
     // Obtener todos los partidos del usuario
     const matches = await prisma.match.findMany({
       where: { 
-        userId
+        userId,
+        deletedAt: null
       },
       select: {
         partners: true

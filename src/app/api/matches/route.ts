@@ -12,7 +12,7 @@ export async function GET() {
   try {
     const userId = (session.user as any).id;
     const matches = await prisma.match.findMany({
-      where: { userId },
+      where: { userId, deletedAt: null },
       include: {
         category: true,
         division: true,

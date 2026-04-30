@@ -22,8 +22,10 @@ model User {
   password      String
   refereeType   String // MESA | PISTA
   role          String   @default("USER") // USER | ADMIN
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deletedAt       DateTime? // Borrado lógico para proteger histórico
+  lastVersionSeen String    @default("1.0.0") // Control de mensajes de actualización
 
   homeCity   String? // City Hall of residence for distance calculation
   pricePerKm Float   @default(0.23) // Standard rate per km
@@ -69,9 +71,12 @@ model Match {
   role         String // ARBITRO PRINCIPAL, ANOTADOR, etc.
   matchday     Int? // Jornada
   partners     Json? // Information about technical team (name, role, phone)
+  localColor   String? // Color de la equipación local
+  visitorColor String? // Color de la equipación visitante
   userId       String
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+  deletedAt    DateTime? // Borrado lógico para proteger histórico
 
   user     User     @relation(fields: [userId], references: [id])
   category Category @relation(fields: [categoryId], references: [id])
@@ -79,6 +84,8 @@ model Match {
   payment  Payment?
 
   @@unique([matchNumber, userId])
+  @@index([userId]) // Índice para consultas por usuario
+  @@index([date])   // Índice para filtros por fecha
 }
 
 model Payment {
@@ -93,6 +100,8 @@ model Payment {
 
   match Match @relation(fields: [matchId], references: [id], onDelete: Cascade)
   user  User  @relation(fields: [userId], references: [id])
+
+  @@index([userId]) // Índice para consultas por usuario
 }
 
 // Predefined tariffs by category (optional enhancement)

@@ -21,6 +21,8 @@ export interface ParsedMatch {
   role: string;
   matchday?: number;
   partners?: Partner[];
+  localColor?: string;
+  visitorColor?: string;
 }
 
 export async function parseDesignationPDF(buffer: Buffer): Promise<ParsedMatch[]> {
@@ -126,6 +128,11 @@ export async function parseDesignationPDF(buffer: Buffer): Promise<ParsedMatch[]
             match.division = '';
           }
         }
+
+        // --- Extracción de COLORES DE EQUIPACIÓN ---
+        const { localColor, visitorColor } = extractEquipmentColors(block);
+        match.localColor = localColor;
+        match.visitorColor = visitorColor;
 
         // --- Extracción de EQUIPO ARBITRAL ---
         const squadSectionMatch = block.match(/EQUIPO ARBITRAL\s+([\s\S]*?)(?=\nÁRBITROS -|$)/);
@@ -267,4 +274,53 @@ export async function parseDesignationPDF(buffer: Buffer): Promise<ParsedMatch[]
     console.error('Error fatal en el parser de PDF:', error);
     throw new Error(`Error al interpretar el PDF: ${error.message}`);
   }
+}
+
+export function extractEquipmentColors(block: string): { localColor?: string; visitorColor?: string } {
+  const result: { localColor?: string; visitorColor?: string } = {};
+
+  const cleanBlock = block.replace(/\r/g, '');
+
+  // Helper para extraer de una sección
+  const extractFromSection = (section?: string) => {
+    if (!section) return undefined;
+    const lines = section.trim().split('\n');
+    const mainLine = lines[0].trim();
+    const slashLine = lines[1]?.trim();
+
+    // El color de la camiseta suele ser el penúltimo bloque de mayúsculas si hay 2 (Camiseta y Pantalón)
+    // Ejemplo: "EQUIPO NOMBRE VERDE CLARO VERDE CLARO"
+    const words = mainLine.split(/\s+/);
+    let color1 = '';
+    
+    // Buscar bloques de mayúsculas desde el final
+    const capsWords = [];
+    for (let i = words.length - 1; i >= 0; i--) {
+      if (/^[A-ZÁÉÍÓÚ]{3,}$/.test(words[i])) {
+        capsWords.unshift(words[i]);
+      } else {
+        break;
+      }
+    }
+
+    if (capsWords.length >= 2) {
+      // Si hay 4 palabras: [VERDE, CLARO, VERDE, CLARO], el color es VERDE CLARO
+      const mid = Math.floor(capsWords.length / 2);
+      color1 = capsWords.slice(0, mid).join(' ');
+    } else if (capsWords.length === 1) {
+      color1 = capsWords[0];
+    }
+
+    if (color1) {
+      const slashMatch = slashLine?.match(/\/([A-ZÁÉÍÓÚ\s]{3,})/);
+      const color2 = slashMatch ? slashMatch[1].trim().split(/\s+/)[0] : '';
+      return color2 ? `${color1}/${color2}` : color1;
+    }
+    return undefined;
+  };
+
+  result.localColor = extractFromSection(cleanBlock.split(/LOCAL CAMISETA PANTALÓN/)[1]?.split(/VISITANTE/)[0]);
+  result.visitorColor = extractFromSection(cleanBlock.split(/VISITANTE CAMISETA PANTALÓN/)[1]?.split(/EQUIPO ARBITRAL|ÁRBITROS/)[0]);
+
+  return result;
 }

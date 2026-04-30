@@ -12,6 +12,7 @@ export async function GET() {
 
   try {
     const users = await prisma.user.findMany({
+      where: { deletedAt: null },
       select: {
         id: true,
         licenseNumber: true,
@@ -48,7 +49,11 @@ export async function DELETE(req: Request) {
         return NextResponse.json({ message: 'No puedes borrar tu propia cuenta' }, { status: 400 });
     }
 
-    await prisma.user.delete({ where: { id } });
+    // Soft delete: no borramos de verdad para no perder el histórico
+    await prisma.user.update({
+        where: { id },
+        data: { deletedAt: new Date() }
+    });
     
     return NextResponse.json({ message: 'Usuario eliminado' });
   } catch (err) {

@@ -27,14 +27,11 @@ export async function DELETE(
       return NextResponse.json({ message: 'No tienes permiso para borrar este partido' }, { status: 403 });
     }
 
-    // El pago se borrará automáticamente si configuramos onDelete: Cascade en el esquema
-    // pero para estar seguros y evitar problemas con SQLite, borramos el pago primero si existe.
-    await prisma.payment.deleteMany({
-      where: { matchId: matchId },
-    });
-
-    await prisma.match.delete({
+    // En lugar de borrar (DELETE), hacemos un borrado lógico (Soft Delete)
+    // Conservamos el Payment por si en el futuro se restaura el partido, o para mantener histórico general
+    await prisma.match.update({
       where: { id: matchId },
+      data: { deletedAt: new Date() }
     });
 
     return NextResponse.json({ message: 'Partido eliminado correctamente' });

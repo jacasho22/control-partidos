@@ -13,7 +13,7 @@ export async function GET(_req: Request) {
   
   try {
     const matches = await prisma.match.findMany({
-      where: { userId },
+      where: { userId, deletedAt: null },
       include: {
         payment: true,
         category: true,

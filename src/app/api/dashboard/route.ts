@@ -11,7 +11,7 @@ export async function GET() {
 
   try {
     const allMatches = await prisma.match.findMany({
-      where: { userId },
+      where: { userId, deletedAt: null },
       include: {
         payment: true,
         category: true,
@@ -19,6 +19,15 @@ export async function GET() {
       },
       orderBy: { date: 'asc' },
     });
+
+    // 1. Verificar si el usuario ha visto la última actualización
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { lastVersionSeen: true }
+    });
+
+    const CURRENT_VERSION = '1.1.0';
+    const showUpdateModal = user?.lastVersionSeen !== CURRENT_VERSION;
 
     if (allMatches.length === 0) {
       return NextResponse.json({
@@ -107,6 +116,8 @@ export async function GET() {
       totalEarnings,
       topCategory,
       totalMatches: allMatches.length,
+      showUpdateModal,
+      currentVersion: CURRENT_VERSION
     });
   } catch (error) {
     console.error('Error fetching dashboard data:', error);
