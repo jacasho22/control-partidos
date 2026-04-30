@@ -3,10 +3,16 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
+interface SessionUser {
+  id: string;
+  role: string;
+}
+
 export async function GET() {
   const session = await getServerSession(authOptions);
+  const user = session?.user as SessionUser | undefined;
   
-  if (!session || (session.user as any).role !== 'ADMIN') {
+  if (!session || user?.role !== 'ADMIN') {
     return NextResponse.json({ message: 'No autorizado' }, { status: 403 });
   }
 
@@ -31,8 +37,9 @@ export async function GET() {
 
 export async function DELETE(req: Request) {
   const session = await getServerSession(authOptions);
+  const user = session?.user as SessionUser | undefined;
 
-  if (!session || (session.user as any).role !== 'ADMIN') {
+  if (!session || user?.role !== 'ADMIN') {
     return NextResponse.json({ message: 'No autorizado' }, { status: 403 });
   }
 
@@ -45,7 +52,7 @@ export async function DELETE(req: Request) {
     }
 
     // Prevent deleting yourself
-    if (id === (session.user as any).id) {
+    if (id === user?.id) {
         return NextResponse.json({ message: 'No puedes borrar tu propia cuenta' }, { status: 400 });
     }
 

@@ -25,9 +25,16 @@ export async function GET() {
     ];
 
     let updatedCount = 0;
+
+    interface PartnerData {
+      name: string;
+      role: string;
+      [key: string]: unknown;
+    }
+
     for (const match of matches) {
       if (!match.partners) continue;
-      const partners = match.partners as any[];
+      const partners = match.partners as unknown as PartnerData[];
       if (Array.isArray(partners)) {
         let changed = false;
         const cleanedPartners = partners.map(p => {

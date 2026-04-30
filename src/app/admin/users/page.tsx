@@ -20,10 +20,11 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const user = session?.user as { role?: string } | undefined;
     if (status === 'unauthenticated') {
       router.push('/login');
     } else if (status === 'authenticated') {
-      if ((session?.user as any)?.role !== 'ADMIN') {
+      if (user?.role !== 'ADMIN') {
         router.push('/');
       } else {
         fetchUsers();
