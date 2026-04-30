@@ -32,7 +32,7 @@ export async function POST(req: Request) {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const user = await prisma.user.create({
+    await prisma.user.create({
       data: {
         licenseNumber,
         name,
@@ -44,11 +44,9 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ message: 'Usuario creado correctamente' }, { status: 201 });
   } catch (error) {
-    const message =
-      typeof (error as any)?.message === 'string'
-        ? (error as any).message
-        : 'Error interno del servidor';
-    const code = (error as any)?.code;
+    const err = error as { message?: string; code?: string };
+    const message = err.message || 'Error interno del servidor';
+    const code = err.code;
 
     if (code === 'P2002') {
       return NextResponse.json({ message: 'El número de licencia ya existe' }, { status: 409 });

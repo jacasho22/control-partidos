@@ -10,7 +10,7 @@ export async function GET() {
   }
 
   try {
-    const userId = (session.user as any).id;
+    const userId = (session.user as { id: string }).id;
     const matches = await prisma.match.findMany({
       where: { userId, deletedAt: null },
       include: {

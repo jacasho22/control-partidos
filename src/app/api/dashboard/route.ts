@@ -45,7 +45,12 @@ export async function GET() {
     // Lógica para encontrar el próximo partido:
     // 1. Debe ser en el futuro (incluyendo hoy pero después de la hora de inicio)
     // 2. Debe ser dentro de la semana actual (hasta el domingo a las 23:59:59)
-    const getMatchDateTime = (m: any) => {
+    interface MatchData {
+      date: Date | string;
+      time: string;
+    }
+
+    const getMatchDateTime = (m: MatchData) => {
       const d = new Date(m.date);
       const [hours, minutes] = m.time.split(':').map(Number);
       d.setUTCHours(hours, minutes, 0, 0);

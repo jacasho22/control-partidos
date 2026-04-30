@@ -10,7 +10,7 @@ export async function GET() {
   }
 
   try {
-    const userId = (session.user as any).id;
+    const userId = (session.user as { id: string }).id;
     
     // Obtener todos los partidos del usuario
     const matches = await prisma.match.findMany({
@@ -23,11 +23,17 @@ export async function GET() {
       }
     });
 
+    interface Partner {
+      name: string;
+      role: string;
+      phone?: string;
+    }
+
     const partnerStats: Record<string, { count: number; phones: Set<string>; lastRole: string }> = {};
 
     matches.forEach(match => {
       if (!match.partners) return;
-      const partnersList = match.partners as any[];
+      const partnersList = match.partners as unknown as Partner[];
       if (Array.isArray(partnersList)) {
         partnersList.forEach(p => {
           // No contarse a sí mismo (basado en el nombre almacenado en la sesión si es posible)

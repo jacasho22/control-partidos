@@ -16,7 +16,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ message: 'Falta matchId' }, { status: 400 });
     }
 
-    const userId = (session.user as any).id;
+    const userId = (session.user as { id: string }).id;
 
     // Verificar que el partido pertenece al usuario
     const match = await prisma.match.findUnique({

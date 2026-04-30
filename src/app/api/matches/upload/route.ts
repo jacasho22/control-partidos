@@ -21,8 +21,9 @@ export async function POST(req: Request) {
         const matches = await parseDesignationPDF(buffer);
         console.log(`Archivo ${file.name} procesado: ${matches.length} partido(s) encontrado(s)`);
         return matches;
-      } catch (error: any) {
-        console.error(`Error procesando ${file.name}:`, error.message);
+      } catch (error) {
+        const err = error as Error;
+        console.error(`Error procesando ${file.name}:`, err.message);
         // Retornar array vacío si un archivo falla, para no interrumpir el proceso
         return [];
       }
@@ -35,12 +36,13 @@ export async function POST(req: Request) {
     console.log(`Total de partidos encontrados: ${allMatches.length}`);
 
     return NextResponse.json({ matches: allMatches });
-  } catch (error: any) {
-    console.error('Error processing PDF upload:', error);
+  } catch (error) {
+    const err = error as Error;
+    console.error('Error processing PDF upload:', err);
     return NextResponse.json({ 
       message: 'Error al procesar los PDFs', 
-      error: error.message,
-      stack: error.stack 
+      error: err.message,
+      stack: err.stack 
     }, { status: 500 });
   }
 }
