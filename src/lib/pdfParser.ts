@@ -47,7 +47,7 @@ export async function parseDesignationPdf(buffer: Buffer): Promise<MatchData[]> 
     const contentBefore = i === 1 ? parts[0] : parts[i - 1];
 
     // Buscar equipos y fecha en el texto anterior al ID
-    const linesBefore = contentBefore.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+    const linesBefore = contentBefore.split('\n').map((l: string) => l.trim()).filter((l: string) => l.length > 0);
     
     let localTeam = '';
     let visitorTeam = '';
@@ -130,7 +130,7 @@ export async function parseDesignationPdf(buffer: Buffer): Promise<MatchData[]> 
     
     for (let k = 1; k < partnerBlocks.length; k++) {
       const pBlock = partnerBlocks[k];
-      const pLines = pBlock.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+      const pLines = pBlock.split('\n').map((l: string) => l.trim()).filter((l: string) => l.length > 0);
       
       if (pLines.length >= 2) {
         // pLines[0] es la función (puede estar en 2 líneas)
