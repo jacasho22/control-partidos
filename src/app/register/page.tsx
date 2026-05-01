@@ -47,7 +47,7 @@ export default function RegisterPage() {
         const data = await res.json();
         setError(data.message || 'Error al registrarse');
       }
-    } catch (_error) {
+    } catch {
       setError('Error de conexión');
     } finally {
       setLoading(false);

@@ -53,7 +53,7 @@ export default function SettingsPage() {
       } else {
         setMessage({ type: 'error', text: 'Error al guardar los ajustes' });
       }
-    } catch (_) {
+    } catch {
       setMessage({ type: 'error', text: 'Error de conexión' });
     } finally {
       setSaving(false);
@@ -164,7 +164,7 @@ function PasswordChangeForm() {
       } else {
         setMessage({ type: 'error', text: data.message || 'Error al actualizar' });
       }
-    } catch (err) {
+    } catch {
       setMessage({ type: 'error', text: 'Error de conexión' });
     } finally {
       setLoading(false);

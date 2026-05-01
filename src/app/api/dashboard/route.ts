@@ -72,7 +72,7 @@ export async function GET() {
 
       if (nextMatchCandidate.fullDateTime <= endOfWeek) {
         // Quitamos la propiedad temporal antes de enviarla
-        const { fullDateTime: _, ...matchWithoutFullDate } = nextMatchCandidate;
+        const { fullDateTime: _unused, ...matchWithoutFullDate } = nextMatchCandidate;
         nextMatch = matchWithoutFullDate;
       }
     }

@@ -50,7 +50,7 @@ function LoginForm() {
       } else {
         router.push('/dashboard');
       }
-    } catch (_error) {
+    } catch {
       setError('Error al conectar con el servidor');
       setLoading(false);
     }
