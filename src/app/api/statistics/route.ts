@@ -5,7 +5,7 @@ import { prisma } from '@/lib/prisma';
 // No external date utility needed for these calculations
 
 
-export async function GET(_req: Request) {
+export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ message: 'No autorizado' }, { status: 401 });
 

@@ -5,7 +5,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 
 export default function SettingsPage() {
-  const { data: session, status } = useSession();
+  const { status } = useSession();
   const router = useRouter();
   const [homeCity, setHomeCity] = useState('');
   const [pricePerKm, setPricePerKm] = useState('0.23');
@@ -29,7 +29,7 @@ export default function SettingsPage() {
         setHomeCity(data.homeCity || '');
         setPricePerKm(data.pricePerKm?.toString() || '0.23');
       }
-    } catch (err) {
+    } catch (_) {
       console.error('Error fetching settings:', err);
     } finally {
       setLoading(false);
@@ -53,7 +53,7 @@ export default function SettingsPage() {
       } else {
         setMessage({ type: 'error', text: 'Error al guardar los ajustes' });
       }
-    } catch (err) {
+    } catch (_) {
       setMessage({ type: 'error', text: 'Error de conexión' });
     } finally {
       setSaving(false);
