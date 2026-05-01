@@ -22,8 +22,9 @@ export async function POST(req: Request) {
     }
 
     // 1. Obtener usuario con su hash actual
+    const userId = (session.user as { id: string }).id;
     const user = await prisma.user.findUnique({
-        where: { id: (session.user as any).id },
+        where: { id: userId },
     });
 
     if (!user || !user.password) {

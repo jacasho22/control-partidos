@@ -10,8 +10,9 @@ export async function GET() {
   }
 
   try {
+    const userId = (session.user as { id: string }).id;
     const user = await prisma.user.findUnique({
-      where: { id: (session.user as any).id },
+      where: { id: userId },
       select: { homeCity: true, pricePerKm: true }
     });
     return NextResponse.json(user);
@@ -28,9 +29,10 @@ export async function POST(req: Request) {
   }
 
   try {
+    const userId = (session.user as { id: string }).id;
     const { homeCity, pricePerKm } = await req.json();
     await prisma.user.update({
-      where: { id: (session.user as any).id },
+      where: { id: userId },
       data: { 
         homeCity: homeCity?.trim() || null, 
         pricePerKm: parseFloat(pricePerKm) || 0.23 

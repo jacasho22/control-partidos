@@ -4,13 +4,32 @@ import { useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 
+interface Partner {
+  name: string;
+  role: string;
+  phone?: string;
+}
+
+interface ParsedMatch {
+  date: string;
+  time: string;
+  matchNumber: string;
+  localTeam: string;
+  visitorTeam: string;
+  category: string;
+  division: string;
+  venue: string;
+  role: string;
+  partners: Partner[];
+}
+
 export default function UploadPage() {
   const { data: session } = useSession();
   const router = useRouter();
   const [files, setFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [parsedMatches, setParsedMatches] = useState<any[]>([]);
+  const [parsedMatches, setParsedMatches] = useState<ParsedMatch[]>([]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -47,9 +66,10 @@ export default function UploadPage() {
         const data = await res.json();
         setError(data.message || 'Error al procesar los PDFs');
       }
-    } catch (err: any) {
-      console.error('Fetch error:', err);
-      setError(`Error de conexión al servidor: ${err.message || 'Error desconocido'}`);
+    } catch (err) {
+      const errorObj = err as Error;
+      console.error('Fetch error:', errorObj);
+      setError(`Error de conexión al servidor: ${errorObj.message || 'Error desconocido'}`);
     } finally {
       setLoading(false);
     }
@@ -70,9 +90,10 @@ export default function UploadPage() {
         const data = await res.json();
         setError(`Error al guardar: ${data.message}${data.error ? ' - ' + data.error : ''}`);
       }
-    } catch (err: any) {
-      console.error('Save error:', err);
-      setError(`Error de red al guardar: ${err.message}`);
+    } catch (err) {
+      const errorObj = err as Error;
+      console.error('Save error:', errorObj);
+      setError(`Error de red al guardar: ${errorObj.message}`);
     } finally {
       setLoading(false);
     }
@@ -124,7 +145,7 @@ export default function UploadPage() {
                   {match.partners && match.partners.length > 0 && (
                     <div className="mt-2" style={{ borderTop: '1px dashed var(--border)', paddingTop: '0.5rem' }}>
                       <p style={{ fontWeight: 'bold', fontSize: '0.8rem', marginBottom: '0.2rem' }}>Compañeros:</p>
-                      {match.partners.map((p: any, pIdx: number) => (
+                      {match.partners.map((p: Partner, pIdx: number) => (
                         <div key={pIdx} style={{ fontSize: '0.8rem', marginLeft: '0.5rem' }}>
                           <span className="text-muted">{p.role}:</span> {p.name}
                           {p.phone && <span style={{ color: 'var(--primary)', marginLeft: '0.5rem' }}>📞 {p.phone}</span>}

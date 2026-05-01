@@ -44,22 +44,35 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        console.log('JWT Callback - User object:', JSON.stringify(user, null, 2));
-        token.id = user.id;
-        token.role = (user as any).role;
-        token.licenseNumber = (user as any).licenseNumber;
+        interface UserWithMetadata {
+          id: string;
+          role: string;
+          licenseNumber: string;
+        }
+        const u = user as unknown as UserWithMetadata;
+        token.id = u.id;
+        token.role = u.role;
+        token.licenseNumber = u.licenseNumber;
       }
-      console.log('JWT Callback - Token object ID:', token.id);
       return token;
     },
     async session({ session, token }) {
-      console.log('Session Callback - Token object ID:', token.id);
       if (session.user) {
-        (session.user as any).id = token.id;
-        (session.user as any).role = token.role;
-        (session.user as any).licenseNumber = token.licenseNumber;
+        interface SessionUser {
+          id: string;
+          role: string;
+          licenseNumber: string;
+          name?: string | null;
+          email?: string | null;
+          image?: string | null;
+        }
+        session.user = {
+          ...session.user,
+          id: token.id,
+          role: token.role,
+          licenseNumber: token.licenseNumber,
+        } as SessionUser;
       }
-      console.log('Session Callback - Session user ID:', (session.user as any)?.id);
       return session;
     },
   },

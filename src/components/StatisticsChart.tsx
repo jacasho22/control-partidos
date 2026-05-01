@@ -11,6 +11,8 @@ import {
   ArcElement,
   PointElement,
   LineElement,
+  ChartData,
+  ChartOptions,
 } from 'chart.js';
 import { Bar, Pie } from 'react-chartjs-2';
 
@@ -29,10 +31,11 @@ ChartJS.register(
   ChartDataLabels
 );
 
+
 interface StatisticsChartProps {
   type: 'bar' | 'pie';
-  data: any;
-  options?: any;
+  data: ChartData<'bar'> | ChartData<'pie'>;
+  options?: ChartOptions<'bar'> | ChartOptions<'pie'>;
 }
 
 export default function StatisticsChart({ type, data, options }: StatisticsChartProps) {
