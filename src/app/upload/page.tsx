@@ -24,7 +24,7 @@ interface ParsedMatch {
 }
 
 export default function UploadPage() {
-  const { data: session } = useSession();
+  useSession();
   const router = useRouter();
   const [files, setFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);

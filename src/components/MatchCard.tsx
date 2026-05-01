@@ -57,7 +57,7 @@ export default function MatchCard({ match, onPaymentUpdate }: MatchCardProps) {
       // Actualizar el objeto match localmente para que el cálculo de gasolina use el nuevo valor
       match.venueAddress = editedAddress;
       alert('Ubicación actualizada. Ahora puedes volver a calcular la gasolina.');
-    } catch (err) {
+    } catch (_err) {
       alert('Error al guardar la nueva ubicación');
     }
   };
@@ -114,7 +114,7 @@ export default function MatchCard({ match, onPaymentUpdate }: MatchCardProps) {
              const res = await fetch(url);
              const data = await res.json();
              return data.length > 0 ? data[0] : null;
-           } catch (e) {
+           } catch (_e) {
              return null;
            }
         };
