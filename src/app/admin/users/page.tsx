@@ -38,8 +38,8 @@ export default function UsersPage() {
       if (res.ok) {
         setUsers(await res.json());
       }
-    } catch (_) {
-      console.error(_);
+    } catch (_error) {
+      console.error(_error);
     } finally {
       setLoading(false);
     }

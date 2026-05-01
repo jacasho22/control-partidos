@@ -29,8 +29,8 @@ export default function SettingsPage() {
         setHomeCity(data.homeCity || '');
         setPricePerKm(data.pricePerKm?.toString() || '0.23');
       }
-    } catch (_) {
-      console.error('Error fetching settings:', _);
+    } catch (_error) {
+      console.error('Error fetching settings:', _error);
     } finally {
       setLoading(false);
     }
