@@ -4,6 +4,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import "next-auth";
 
 export default function AdminDashboard() {
   const { data: session, status } = useSession();
@@ -21,6 +22,7 @@ export default function AdminDashboard() {
         setLoading(false);
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, session, router]);
 
   if (loading) return <div className="p-8 text-center">Cargando panel de administración...</div>;

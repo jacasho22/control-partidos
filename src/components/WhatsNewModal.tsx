@@ -83,6 +83,7 @@ export default function WhatsNewModal({ version, onClose }: WhatsNewModalProps) 
         </button>
       </div>
 
+      {/* eslint-disable-next-line react/no-unknown-property */}
       <style jsx>{`
         @keyframes slideUp {
           from { transform: translateY(20px); opacity: 0; }

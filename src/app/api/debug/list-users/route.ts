@@ -19,7 +19,9 @@ export async function GET() {
       const url = process.env.DATABASE_URL || '';
       // Only expose host, never credentials
       host = new URL(url.replace(/^psql\s+/i, '').replace(/\u2026/g, '')).host;
-    } catch {}
+    } catch {
+      // Ignoramos error en el parseo de URL
+    }
     return NextResponse.json({ error: message, dbHost: host }, { status: 500 });
   }
 }
