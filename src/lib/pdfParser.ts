@@ -282,46 +282,65 @@ export function extractEquipmentColors(block: string): { localColor?: string; vi
 
   const cleanBlock = block.replace(/\r/g, '');
 
-  // Helper para extraer de una sección
-  const extractFromSection = (section?: string) => {
-    if (!section) return undefined;
-    const lines = section.trim().split('\n');
-    const mainLine = lines[0].trim();
-    const slashLine = lines[1]?.trim();
+  const KNOWN_COLORS = [
+    'BLANCO', 'AZUL', 'ROJO', 'VERDE', 'AMARILLO', 'NEGRO', 'NARANJA', 
+    'ROSA', 'MORADO', 'GRIS', 'MARRÓN', 'MARRON', 'OSCURO', 'CLARO', 
+    'CELESTE', 'GRANA', 'VIOLETA', 'FUCSIA', 'TURQUESA', 'DORADO', 'PLATEADO'
+  ];
 
-    // El color de la camiseta suele ser el penúltimo bloque de mayúsculas si hay 2 (Camiseta y Pantalón)
-    // Ejemplo: "EQUIPO NOMBRE VERDE CLARO VERDE CLARO"
-    const words = mainLine.split(/\s+/);
-    let color1 = '';
-    
-    // Buscar bloques de mayúsculas desde el final
-    const capsWords = [];
-    for (let i = words.length - 1; i >= 0; i--) {
-      if (/^[A-ZÁÉÍÓÚ]{3,}$/.test(words[i])) {
-        capsWords.unshift(words[i]);
-      } else {
-        break;
+  // Regex para detectar colores conocidos (case insensitive)
+  // No usamos \b al principio porque a veces el color se pega al nombre del equipo (ej: EQUIPOVERDE)
+  const colorRegex = new RegExp(`(${KNOWN_COLORS.join('|')})\\b`, 'gi');
+
+  const extractFromSection = (sectionText?: string) => {
+    if (!sectionText) return undefined;
+
+    const lines = sectionText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+    const foundColors: string[] = [];
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const matches = line.match(colorRegex);
+
+      if (matches) {
+        // Normalizar el color encontrado (mayúsculas y espacios limpios)
+        let currentColor = matches.map(m => m.toUpperCase()).join(' ');
+
+        // Verificar si la línea siguiente contiene un color secundario precedido por '/'
+        // Esto es muy común en el formato del PDF: "COLOR主 \n /COLORsec"
+        if (i + 1 < lines.length) {
+          const nextLine = lines[i + 1];
+          if (nextLine.startsWith('/')) {
+            const secondaryMatches = nextLine.match(colorRegex);
+            if (secondaryMatches) {
+              currentColor += ` / ${secondaryMatches.map(m => m.toUpperCase()).join(' ')}`;
+            }
+          }
+        }
+        foundColors.push(currentColor);
+        
+        // Si hemos encontrado un color con su secundario, o simplemente el primero, 
+        // lo devolvemos inmediatamente para evitar falsos positivos con nombres de equipos
+        if (foundColors.length > 0) break;
       }
     }
 
-    if (capsWords.length >= 2) {
-      // Si hay 4 palabras: [VERDE, CLARO, VERDE, CLARO], el color es VERDE CLARO
-      const mid = Math.floor(capsWords.length / 2);
-      color1 = capsWords.slice(0, mid).join(' ');
-    } else if (capsWords.length === 1) {
-      color1 = capsWords[0];
-    }
-
-    if (color1) {
-      const slashMatch = slashLine?.match(/\/([A-ZÁÉÍÓÚ\s]{3,})/);
-      const color2 = slashMatch ? slashMatch[1].trim().split(/\s+/)[0] : '';
-      return color2 ? `${color1}/${color2}` : color1;
-    }
-    return undefined;
+    return foundColors.length > 0 ? foundColors[0] : undefined;
   };
 
-  result.localColor = extractFromSection(cleanBlock.split(/LOCAL CAMISETA PANTALÓN/)[1]?.split(/VISITANTE/)[0]);
-  result.visitorColor = extractFromSection(cleanBlock.split(/VISITANTE CAMISETA PANTALÓN/)[1]?.split(/EQUIPO ARBITRAL|ÁRBITROS/)[0]);
+  // Dividir el bloque en secciones Local y Visitante de forma flexible
+  // Los encabezados pueden aparecer como "LOCAL CAMISETA PANTALÓN" o "LOCALCAMISETAPANTALÓN"
+  const localParts = cleanBlock.split(/LOCAL\s*CAMISETA\s*PANTAL[OÓ]N/i);
+  if (localParts.length > 1) {
+    const localSection = localParts[1].split(/VISITANTE/i)[0];
+    result.localColor = extractFromSection(localSection);
+  }
+
+  const visitorParts = cleanBlock.split(/VISITANTE\s*CAMISETA\s*PANTAL[OÓ]N/i);
+  if (visitorParts.length > 1) {
+    const visitorSection = visitorParts[1].split(/EQUIPO ARBITRAL|ÁRBITROS/i)[0];
+    result.visitorColor = extractFromSection(visitorSection);
+  }
 
   return result;
 }
