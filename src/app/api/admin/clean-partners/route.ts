@@ -63,7 +63,7 @@ export async function GET() {
         if (changed) {
           await prisma.match.update({
             where: { id: match.id },
-            data: { partners: cleanedPartners as any }
+            data: { partners: cleanedPartners as unknown as PartnerData[] }
           });
           updatedCount++;
         }
