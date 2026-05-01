@@ -20,6 +20,8 @@ interface Match {
   visitorTeam: string;
   venue: string;
   role: string;
+  localColor?: string;
+  visitorColor?: string;
   category: { name: string };
   division: { name: string };
   partners?: Partner[];

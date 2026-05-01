@@ -191,80 +191,50 @@ export function extractEquipmentColors(block: string): { localColor?: string; vi
     'ROSA', 'MORADO', 'GRIS', 'OSCURO', 'CLARO', 'CELESTE', 'GRANA', 'VIOLETA'
   ];
 
+  const colorPattern = `(?:${BASE_COLORS.join('|')})(?:\\s+(?:${BASE_COLORS.join('|')}))?`;
+
   const extractFromZone = (zoneText: string) => {
-    // 1. Limpiar el texto de la zona
+    // Limpiar el texto de la zona
     let text = zoneText.replace(/^CAMISETAPANTAL[OÓ]N/i, '').trim();
-    
-    // 2. Dividir en líneas y buscar el color
     const lines = text.split('\n').map((l: string) => l.trim()).filter((l: string) => l.length > 0);
     
-    // Colores base conocidos
-    const colorPattern = `(?:${BASE_COLORS.join('|')})(?:\\s+(?:${BASE_COLORS.join('|')}))?`;
+    let shirt = '';
+    let pants = '';
 
+    // En el PDF, los colores suelen venir debajo del nombre del equipo
+    // LOCAL CAMISETA PANTALÓN
+    // NOMBRE EQUIPO
+    // COLOR_CAMISETA
+    // /COLOR_PANTALON
+    
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i].toUpperCase();
       
-      // REGLA DE ORO: Si hay un par de colores repetidos (ej: AMARILLO/BLANCO AMARILLO/BLANCO),
-      // el primero es la camiseta.
-      const repeatedMatch = line.match(new RegExp(`\\b(${colorPattern}\\s*\\/\\s*${colorPattern})\\s+\\1\\b`, 'i'));
-      if (repeatedMatch) {
-        return repeatedMatch[1].toUpperCase().replace(/\s*\/\s*/g, ' / ').trim();
+      // Si la línea empieza con '/', es el pantalón
+      if (line.startsWith('/')) {
+        pants = line.substring(1).trim();
+        continue;
       }
 
-      // PATRÓN A: Color con barra en la misma línea
-      const slashRegex = new RegExp(`\\b(${colorPattern})\\s*\\/\\s*(${colorPattern})\\b`, 'gi');
-      let match;
-      const foundMatches = [];
-      while ((match = slashRegex.exec(line)) !== null) {
-        foundMatches.push({ c1: match[1].trim(), c2: match[2].trim(), full: match[0] });
-      }
+      // Buscar colores base en la línea
+      const regex = new RegExp(`\\b(${colorPattern})\\b`, 'gi');
+      const matches = line.match(regex);
       
-      if (foundMatches.length > 0) {
-        for (const m of foundMatches) {
-          if (m.c1 === 'AZUL' && line.includes('ORIHUELA AZUL') && line.indexOf(m.full) < 20 && foundMatches.length > 1) continue;
-          
-          // Limpiar c2 si capturó el color del pantalón de la siguiente columna
-          // "AZUL CLARO /BLANCO NEGRO/BLANCO" -> c1="AZUL CLARO", c2="BLANCO NEGRO/BLANCO"
-          let c2 = m.c2;
-          const c2Words = c2.split(/\s+/);
-          if (c2Words.length > 1) {
-             // Si c2 es "BLANCO NEGRO", y hay una barra "/" después en la línea original,
-             // o si simplemente parece que c2 tiene dos colores.
-             // Cogemos solo la primera parte de c2 que sea un color.
-             const firstWordC2 = c2Words[0].replace(/\/$/, '');
-             if (BASE_COLORS.includes(firstWordC2)) {
-                c2 = firstWordC2;
-             }
-          }
-
-          return `${m.c1} / ${c2}`;
-        }
-        return `${foundMatches[0].c1} / ${foundMatches[0].c2}`;
-      }
-
-      // PATRÓN B: Color dividido entre líneas
-      if (i + 1 < lines.length && lines[i+1].startsWith('/')) {
-        const firstMatch = line.match(new RegExp(`(${colorPattern})$`, 'i'));
-        const secondMatch = lines[i+1].match(new RegExp(`^\\/\\s*(${colorPattern})`, 'i'));
-        if (firstMatch && secondMatch) {
-          let c1 = firstMatch[1].trim().toUpperCase();
-          let c2 = secondMatch[1].trim().toUpperCase();
-          if (c1 === 'AZUL' && line.includes('ORIHUELA AZUL')) continue;
-          return `${c1} / ${c2}`;
-        }
-      }
-
-      // PATRÓN C: Solo un color (camiseta) sin barra
-      const singleMatch = line.match(new RegExp(`\\b(${colorPattern})$`, 'i'));
-      if (singleMatch) {
-        const color = singleMatch[1].trim().toUpperCase();
-        if (color === 'AZUL' && line.includes('ORIHUELA AZUL')) continue;
-        if (i > 0 || line.length < color.length + 5) {
-          return color;
+      if (matches) {
+        // Si hay una barra en la línea, podría ser COLOR/COLOR
+        if (line.includes('/')) {
+          const parts = line.split('/');
+          shirt = parts[0].trim();
+          pants = parts[1].trim();
+        } else {
+          // Si no hay barra, la primera coincidencia es la camiseta
+          if (!shirt) shirt = matches[0];
         }
       }
     }
     
+    if (shirt && pants) return `${shirt} / ${pants}`;
+    if (shirt) return shirt;
     return undefined;
   };
 

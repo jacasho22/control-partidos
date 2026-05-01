@@ -21,6 +21,8 @@ interface MatchCardProps {
     role: string;
     category: { name: string };
     division: { name: string };
+    localColor?: string | null;
+    visitorColor?: string | null;
     partners?: Partner[] | null;
     payment?: {
       matchPayment: number;
@@ -309,7 +311,40 @@ export default function MatchCard({ match, onPaymentUpdate }: MatchCardProps) {
       </div>
 
       <div className="mb-4">
-        <p style={{ fontWeight: 'bold', fontSize: '1.05rem', marginBottom: '0.25rem' }}>{match.localTeam} vs {match.visitorTeam}</p>
+        <div style={{ display: 'flex', gap: '1rem', marginBottom: '0.75rem', alignItems: 'flex-start' }}>
+          <div style={{ flex: 1 }}>
+            <p style={{ fontWeight: 'bold', fontSize: '1.05rem', marginBottom: '0.25rem' }}>{match.localTeam}</p>
+            {match.localColor && (
+              <span style={{ 
+                fontSize: '0.75rem', 
+                background: '#f3f4f6', 
+                padding: '0.1rem 0.4rem', 
+                borderRadius: '4px',
+                color: '#4b5563',
+                border: '1px solid #e5e7eb'
+              }}>
+                👕 {match.localColor}
+              </span>
+            )}
+          </div>
+          <div style={{ padding: '0.25rem', color: 'var(--text-muted)', fontWeight: 'bold' }}>vs</div>
+          <div style={{ flex: 1, textAlign: 'right' }}>
+            <p style={{ fontWeight: 'bold', fontSize: '1.05rem', marginBottom: '0.25rem' }}>{match.visitorTeam}</p>
+            {match.visitorColor && (
+              <span style={{ 
+                fontSize: '0.75rem', 
+                background: '#f3f4f6', 
+                padding: '0.1rem 0.4rem', 
+                borderRadius: '4px',
+                color: '#4b5563',
+                border: '1px solid #e5e7eb'
+              }}>
+                👕 {match.visitorColor}
+              </span>
+            )}
+          </div>
+        </div>
+        
         <p className="text-muted" style={{ fontSize: '0.9rem', marginBottom: '0.5rem' }}>{match.category.name} - {match.division.name}</p>
         
         {isEditingAddress ? (
