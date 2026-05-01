@@ -33,44 +33,149 @@ export async function parseDesignationPdf(buffer: Buffer): Promise<MatchData[]> 
   const text = data.text;
   const matches: MatchData[] = [];
   
-  // Dividir el texto por bloques de partidos
-  const blocks = text.split(/DATOS DEL PARTIDO\s+/).slice(1);
+  // El PDF suele tener bloques que empiezan con el nombre de los equipos,
+  // seguido de la fecha y luego "DATOS DEL PARTIDO [ID]"
+  const parts = text.split(/DATOS DEL PARTIDO\s+(\d+)/);
   
-  for (const block of blocks) {
-    const lines = block.split('\n').map((line: string) => line.trim()).filter((line: string) => line.length > 0);
-    if (lines.length < 5) continue;
+  // parts[0] es el texto antes del primer "DATOS DEL PARTIDO"
+  // parts[1] es el ID del primer partido
+  // parts[2] es el contenido del primer partido hasta el siguiente ID
+  
+  for (let i = 1; i < parts.length; i += 2) {
+    const matchId = parts[i];
+    const contentAfter = parts[i + 1] || '';
+    const contentBefore = i === 1 ? parts[0] : parts[i - 1];
 
-    // ID del partido
-    const matchId = lines[0].match(/^\d+/)?.[0] || '';
+    // Buscar equipos y fecha en el texto anterior al ID
+    const linesBefore = contentBefore.split('\n').map(l => l.trim()).filter(l => l.length > 0);
     
-    // Fecha y hora
-    const dateMatch = block.match(/(\d{2}\/\d{2}\/\d{4})\s*-\s*(\d{2}:\d{2})/);
-    const date = dateMatch?.[1] || '';
-    const time = dateMatch?.[2] || '';
+    let localTeam = '';
+    let visitorTeam = '';
+    let date = '';
+    let time = '';
 
-    // Equipos
-    const teamsLine = lines.find((l: string) => l.includes(' vs '));
-    const [localTeam, visitorTeam] = teamsLine ? teamsLine.split(' vs ') : ['', ''];
+    // El nombre de los equipos suele estar 2 líneas antes de "DATOS DEL PARTIDO"
+    // y la fecha 1 línea antes.
+    for (let j = linesBefore.length - 1; j >= 0; j--) {
+      const line = linesBefore[j];
+      
+      // Buscar fecha: SÁBADO 25/10/2025 - 10:00
+      const dateMatch = line.match(/(\d{2}\/\d{2}\/\d{4})\s*-\s*(\d{2}:\d{2})/);
+      if (dateMatch && !date) {
+        date = dateMatch[1];
+        time = dateMatch[2];
+        
+        // El nombre de los equipos suele estar justo en la línea anterior a la fecha
+        if (j > 0) {
+          const teamsLine = linesBefore[j-1];
+          if (teamsLine.includes(' - ')) {
+            const teams = teamsLine.split(' - ');
+            localTeam = teams[0].trim();
+            visitorTeam = teams[1].trim();
+          }
+        }
+        break;
+      }
+    }
 
-    // Colores de equipación
-    const colors = extractEquipmentColors(block);
+    // Si no se encontró en las líneas de arriba, intentar un regex más global en el bloque anterior
+    if (!localTeam) {
+      const teamsMatch = contentBefore.match(/([^-]+)\s+-\s+([^\n]+)\n.*?\d{2}\/\d{2}\/\d{4}/s);
+      if (teamsMatch) {
+        localTeam = teamsMatch[1].trim();
+        visitorTeam = teamsMatch[2].trim();
+      }
+    }
 
-    // ... resto del parsing simplificado para el ejemplo
+    // Extraer Categoría y Competición
+    let category = '';
+    let competition = '';
+    const catCompMatch = contentAfter.match(/CATEGORÍACOMPETICIÓN\s*\n([^\n]+)/);
+    if (catCompMatch) {
+      const combined = catCompMatch[1].trim();
+      // Intentar separar categoría de competición. 
+      // Suele haber un cambio de formato o palabras clave como "Fase", "Nivel", etc.
+      if (combined.includes('Fase')) {
+        const index = combined.indexOf('Fase');
+        category = combined.substring(0, index).trim();
+        competition = combined.substring(index).trim();
+      } else if (combined.includes('Copa')) {
+        const index = combined.indexOf('Copa');
+        category = combined.substring(0, index).trim();
+        competition = combined.substring(index).trim();
+      } else {
+        category = combined;
+      }
+    }
+
+    // Extraer Sede/Ciudad (está en la parte de arriba del PDF, difícil de asociar a cada partido si hay varios)
+    // Pero en el texto debug vemos:
+    // POLI MUNI ESPEÑETAS
+    // C/LOS RUISES S/N · 03300 ORIHUELA
+    let location = '';
+    let city = '';
+    const venueMatch = text.match(/PARA LOS PARTIDOS SIGUIENTES DEL DÍA:\s*\n([^\n]+)\n([^\n·]+)·\s*\d{5}\s+([^\n]+)/);
+    if (venueMatch) {
+      location = venueMatch[1].trim();
+      city = venueMatch[3].trim();
+    }
+
+    // Extraer Colores
+    const colors = extractEquipmentColors(contentAfter);
+
+    // Extraer Compañeros (EQUIPO ARBITRAL)
+    const partners: PartnerData[] = [];
+    const arbitralSection = contentAfter.split(/EQUIPO ARBITRAL/)[1] || '';
+    const partnerBlocks = arbitralSection.split(/FUNCIÓNNOMBRE Y APELLIDOS/);
+    
+    for (let k = 1; k < partnerBlocks.length; k++) {
+      const pBlock = partnerBlocks[k];
+      const pLines = pBlock.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+      
+      if (pLines.length >= 2) {
+        // pLines[0] es la función (puede estar en 2 líneas)
+        // pLines[1] es el nombre y licencia
+        let role = pLines[0];
+        let nameAndLicense = pLines[1];
+        
+        if (role === 'ARBITRO' && pLines[1] === 'PRINCIPAL') {
+          role = 'ARBITRO PRINCIPAL';
+          nameAndLicense = pLines[2];
+        }
+
+        const nameMatch = nameAndLicense?.match(/([^(]+)\s+\((\d+)\)/);
+        const name = nameMatch ? nameMatch[1].trim() : nameAndLicense;
+        const license = nameMatch ? nameMatch[2] : '';
+
+        // Buscar teléfono en las siguientes líneas
+        let phone = '';
+        const phoneMatch = pBlock.match(/TELÉFONOPOBLACIÓN\s*\n(\d{9})/);
+        if (phoneMatch) {
+          phone = phoneMatch[1];
+        }
+
+        partners.push({ role, name, license, phone });
+      }
+    }
+
+    // Determinar mi rol (el que coincida con el nombre del usuario o simplemente buscar el que no sea anotador si soy árbitro)
+    const myRole = partners.find(p => p.role.includes('ARBITRO'))?.role || 'ARBITRO';
+
     matches.push({
       id: matchId,
       date,
       time,
-      category: '',
-      competition: '',
-      location: '',
-      city: '',
-      localTeam: localTeam.trim(),
-      visitorTeam: visitorTeam.trim(),
+      category,
+      competition,
+      location,
+      city,
+      localTeam,
+      visitorTeam,
       localColor: colors.localColor,
       visitorColor: colors.visitorColor,
-      role: 'ARBITRO',
-      partners: [],
-      payment: 0
+      role: myRole,
+      partners,
+      payment: 0 // Se calculará después en el servicio de tarifas
     });
   }
 
