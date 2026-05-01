@@ -270,9 +270,10 @@ export async function parseDesignationPDF(buffer: Buffer): Promise<ParsedMatch[]
     console.log(`Extracción completada: ${uniqueMatches.length} partidos encontrados con sus respectivos compañeros.`);
 
     return uniqueMatches;
-  } catch (error: any) {
-    console.error('Error fatal en el parser de PDF:', error);
-    throw new Error(`Error al interpretar el PDF: ${error.message}`);
+  } catch (error) {
+    const err = error as Error;
+    console.error('Error fatal en el parser de PDF:', err);
+    throw new Error(`Error al interpretar el PDF: ${err.message}`);
   }
 }
 
