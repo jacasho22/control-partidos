@@ -30,7 +30,7 @@ export async function GET() {
       orderBy: { createdAt: 'desc' },
     });
     return NextResponse.json(users);
-  } catch (err) {
+  } catch (_) {
     return NextResponse.json({ message: 'Error al obtener usuarios' }, { status: 500 });
   }
 }
@@ -63,7 +63,7 @@ export async function DELETE(req: Request) {
     });
     
     return NextResponse.json({ message: 'Usuario eliminado' });
-  } catch (err) {
+  } catch (_) {
     return NextResponse.json({ message: 'Error al eliminar usuario' }, { status: 500 });
   }
 }

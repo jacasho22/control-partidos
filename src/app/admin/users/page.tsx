@@ -38,7 +38,7 @@ export default function UsersPage() {
       if (res.ok) {
         setUsers(await res.json());
       }
-    } catch (err) {
+    } catch (_) {
       console.error(err);
     } finally {
       setLoading(false);
@@ -58,7 +58,7 @@ export default function UsersPage() {
       } else {
         alert(data.message || 'Error al eliminar');
       }
-    } catch (err) {
+    } catch (_) {
       alert('Error de conexión');
     }
   };
