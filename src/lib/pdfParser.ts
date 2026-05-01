@@ -1,5 +1,5 @@
-import * as fs from 'fs';
-import * as path from 'path';
+// @ts-ignore
+import pdf from 'pdf-parse/lib/pdf-parse.js';
 
 export interface MatchData {
   id: string;
@@ -25,14 +25,19 @@ export interface PartnerData {
   phone?: string;
 }
 
-export function parseDesignationPdf(text: string): MatchData[] {
+/**
+ * Procesa un Buffer de PDF y devuelve los partidos encontrados.
+ */
+export async function parseDesignationPdf(buffer: Buffer): Promise<MatchData[]> {
+  const data = await pdf(buffer);
+  const text = data.text;
   const matches: MatchData[] = [];
   
   // Dividir el texto por bloques de partidos
   const blocks = text.split(/DATOS DEL PARTIDO\s+/).slice(1);
   
   for (const block of blocks) {
-    const lines = block.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+    const lines = block.split('\n').map((line: string) => line.trim()).filter((line: string) => line.length > 0);
     if (lines.length < 5) continue;
 
     // ID del partido
@@ -44,7 +49,7 @@ export function parseDesignationPdf(text: string): MatchData[] {
     const time = dateMatch?.[2] || '';
 
     // Equipos
-    const teamsLine = lines.find(l => l.includes(' vs '));
+    const teamsLine = lines.find((l: string) => l.includes(' vs '));
     const [localTeam, visitorTeam] = teamsLine ? teamsLine.split(' vs ') : ['', ''];
 
     // Colores de equipación
@@ -86,7 +91,7 @@ export function extractEquipmentColors(block: string): { localColor?: string; vi
     let text = zoneText.replace(/^CAMISETAPANTAL[OÓ]N/i, '').trim();
     
     // 2. Dividir en líneas y buscar el color
-    const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+    const lines = text.split('\n').map((l: string) => l.trim()).filter((l: string) => l.length > 0);
     
     // Colores base conocidos
     const colorPattern = `(?:${BASE_COLORS.join('|')})(?:\\s+(?:${BASE_COLORS.join('|')}))?`;

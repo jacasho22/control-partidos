@@ -10,6 +10,9 @@ export const metadata: Metadata = {
   title: 'Control de Partidos - Árbitros',
   description: 'Gestión de designaciones arbitrales y estadísticas',
   manifest: '/manifest.json',
+};
+
+export const viewport = {
   themeColor: '#2563eb',
 };
 

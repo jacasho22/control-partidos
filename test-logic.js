@@ -1,4 +1,4 @@
-import { parseDesignationPDF } from './src/lib/pdfParser';
+import { parseDesignationPdf } from './src/lib/pdfParser';
 import fs from 'fs';
 
 async function test() {

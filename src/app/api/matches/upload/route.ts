@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { parseDesignationPDF } from '@/lib/pdfParser';
+import { parseDesignationPdf } from '@/lib/pdfParser';
 
 export async function POST(req: Request) {
   console.log('--- Nueva solicitud de subida de PDF(s) recibida ---');
@@ -18,7 +18,7 @@ export async function POST(req: Request) {
       try {
         console.log(`Procesando archivo ${index + 1}/${files.length}: ${file.name}`);
         const buffer = Buffer.from(await file.arrayBuffer());
-        const matches = await parseDesignationPDF(buffer);
+        const matches = await parseDesignationPdf(buffer);
         console.log(`Archivo ${file.name} procesado: ${matches.length} partido(s) encontrado(s)`);
         return matches;
       } catch (error) {
