@@ -282,64 +282,73 @@ export function extractEquipmentColors(block: string): { localColor?: string; vi
 
   const cleanBlock = block.replace(/\r/g, '');
 
-  const KNOWN_COLORS = [
-    'BLANCO', 'AZUL', 'ROJO', 'VERDE', 'AMARILLO', 'NEGRO', 'NARANJA', 
-    'ROSA', 'MORADO', 'GRIS', 'MARRÓN', 'MARRON', 'OSCURO', 'CLARO', 
-    'CELESTE', 'GRANA', 'VIOLETA', 'FUCSIA', 'TURQUESA', 'DORADO', 'PLATEADO'
-  ];
+  const extractFromZone = (zoneText: string) => {
+    // 1. Limpiar el texto de la zona: quitar el encabezado pegado si existe
+    let text = zoneText.replace(/^CAMISETAPANTAL[OÓ]N/i, '').trim();
+    
+    const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+    if (lines.length === 0) return undefined;
 
-  // Regex para detectar colores conocidos (case insensitive)
-  // No usamos \b al principio porque a veces el color se pega al nombre del equipo (ej: EQUIPOVERDE)
-  const colorRegex = new RegExp(`(${KNOWN_COLORS.join('|')})\\b`, 'gi');
-
-  const extractFromSection = (sectionText?: string) => {
-    if (!sectionText) return undefined;
-
-    const lines = sectionText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-    const foundColors: string[] = [];
+    // Colores conocidos para filtrar palabras que NO son colores pero están en mayúsculas
+    const VALID_COLORS = ['BLANCO', 'AZUL', 'ROJO', 'VERDE', 'AMARILLO', 'NEGRO', 'NARANJA', 'ROSA', 'MORADO', 'GRIS', 'OSCURO', 'CLARO', 'CELESTE'];
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
-      const matches = line.match(colorRegex);
-
-      if (matches) {
-        // Normalizar el color encontrado (mayúsculas y espacios limpios)
-        let currentColor = matches.map(m => m.toUpperCase()).join(' ');
-
-        // Verificar si la línea siguiente contiene un color secundario precedido por '/'
-        // Esto es muy común en el formato del PDF: "COLOR主 \n /COLORsec"
-        if (i + 1 < lines.length) {
-          const nextLine = lines[i + 1];
-          if (nextLine.startsWith('/')) {
-            const secondaryMatches = nextLine.match(colorRegex);
-            if (secondaryMatches) {
-              currentColor += ` / ${secondaryMatches.map(m => m.toUpperCase()).join(' ')}`;
+      
+      // Buscamos palabras en MAYÚSCULAS al final de la línea.
+      // Intentamos capturar solo si contiene al menos uno de los colores válidos
+      const colorMatch = line.match(/([A-ZÁÉÍÓÚ]{3,}(?:\s+[A-ZÁÉÍÓÚ]{3,})*)$/);
+      
+      if (colorMatch) {
+        const potentialColor = colorMatch[1].trim();
+        
+        // Verificar si alguna de las palabras en potentialColor es un color válido
+        const hasValidColor = potentialColor.split(/\s+/).some(word => VALID_COLORS.includes(word));
+        
+        if (hasValidColor) {
+          let color = potentialColor;
+          
+          // LIMPIEZA ADICIONAL: Si el color empieza con el final del nombre del equipo (mayúsculas pegadas)
+          // Ejemplo: "ORIBASKETVERDE CLARO" -> "VERDE CLARO"
+          // Solo cortamos si la parte sobrante antes del color es parte del nombre del equipo (mayúsculas largas)
+          const colorWords = potentialColor.split(/\s+/);
+          if (colorWords.length > 0) {
+            const firstWord = colorWords[0];
+            for (const validBase of VALID_COLORS) {
+              if (firstWord.endsWith(validBase) && firstWord !== validBase) {
+                // Si la palabra es ORIBASKETVERDE y termina en VERDE, nos quedamos con VERDE
+                colorWords[0] = validBase;
+                color = colorWords.join(' ');
+                break;
+              }
             }
           }
+
+          // Buscar secundario
+          if (i + 1 < lines.length && lines[i+1].startsWith('/')) {
+            const secondary = lines[i+1].substring(1).trim().match(/^([A-ZÁÉÍÓÚ]{3,}(?:\s+[A-ZÁÉÍÓÚ]{3,})*)/);
+            if (secondary) {
+              color += ` / ${secondary[1].trim()}`;
+            }
+          }
+          return color;
         }
-        foundColors.push(currentColor);
-        
-        // Si hemos encontrado un color con su secundario, o simplemente el primero, 
-        // lo devolvemos inmediatamente para evitar falsos positivos con nombres de equipos
-        if (foundColors.length > 0) break;
       }
     }
-
-    return foundColors.length > 0 ? foundColors[0] : undefined;
+    
+    return undefined;
   };
 
-  // Dividir el bloque en secciones Local y Visitante de forma flexible
-  // Los encabezados pueden aparecer como "LOCAL CAMISETA PANTALÓN" o "LOCALCAMISETAPANTALÓN"
-  const localParts = cleanBlock.split(/LOCAL\s*CAMISETA\s*PANTAL[OÓ]N/i);
-  if (localParts.length > 1) {
-    const localSection = localParts[1].split(/VISITANTE/i)[0];
-    result.localColor = extractFromSection(localSection);
+  // Extraer zona Local: Todo entre "LOCALCAMISETAPANTALÓN" y "VISITANTE"
+  const localMatch = cleanBlock.match(/LOCAL\s*CAMISETA\s*PANTAL[OÓ]N([\s\S]*?)VISITANTE/i);
+  if (localMatch) {
+    result.localColor = extractFromZone(localMatch[1]);
   }
 
-  const visitorParts = cleanBlock.split(/VISITANTE\s*CAMISETA\s*PANTAL[OÓ]N/i);
-  if (visitorParts.length > 1) {
-    const visitorSection = visitorParts[1].split(/EQUIPO ARBITRAL|ÁRBITROS/i)[0];
-    result.visitorColor = extractFromSection(visitorSection);
+  // Extraer zona Visitante: Todo entre "VISITANTECAMISETAPANTALÓN" y el siguiente bloque grande
+  const visitorMatch = cleanBlock.match(/VISITANTE\s*CAMISETA\s*PANTAL[OÓ]N([\s\S]*?)(?:EQUIPO ARBITRAL|ÁRBITROS)/i);
+  if (visitorMatch) {
+    result.visitorColor = extractFromZone(visitorMatch[1]);
   }
 
   return result;
