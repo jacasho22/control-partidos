@@ -39,7 +39,7 @@ export default function UsersPage() {
         setUsers(await res.json());
       }
     } catch (_) {
-      console.error(err);
+      console.error(_);
     } finally {
       setLoading(false);
     }
