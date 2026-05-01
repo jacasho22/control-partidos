@@ -283,72 +283,63 @@ export function extractEquipmentColors(block: string): { localColor?: string; vi
   const cleanBlock = block.replace(/\r/g, '');
 
   const extractFromZone = (zoneText: string) => {
-    // 1. Limpiar el texto de la zona: quitar el encabezado pegado si existe
+    // 1. Limpiar el texto de la zona
     let text = zoneText.replace(/^CAMISETAPANTAL[OÓ]N/i, '').trim();
     
+    // 2. Dividir en líneas y buscar patrones de colores
+    // En el PDF, los colores aparecen en líneas independientes DESPUÉS del nombre del equipo.
+    // El nombre del equipo puede ocupar 1 o 2 líneas.
     const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
     if (lines.length === 0) return undefined;
 
-    // Colores conocidos para filtrar palabras que NO son colores pero están en mayúsculas
-    const VALID_COLORS = ['BLANCO', 'AZUL', 'ROJO', 'VERDE', 'AMARILLO', 'NEGRO', 'NARANJA', 'ROSA', 'MORADO', 'GRIS', 'OSCURO', 'CLARO', 'CELESTE'];
+    // Colores base conocidos (en mayúsculas)
+    const BASE_COLORS = ['BLANCO', 'AZUL', 'ROJO', 'VERDE', 'AMARILLO', 'NEGRO', 'NARANJA', 'ROSA', 'MORADO', 'GRIS', 'OSCURO', 'CLARO', 'CELESTE', 'GRANA', 'VIOLETA'];
+    const CONTROL_WORDS = ['CAMISETA', 'PANTALÓN', 'PANTALON', 'LOCAL', 'VISITANTE', 'EQUIPO', 'DATOS', 'PARTIDO'];
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
       
-      // Buscamos palabras en MAYÚSCULAS al final de la línea.
-      // Intentamos capturar solo si contiene al menos uno de los colores válidos
-      const colorMatch = line.match(/([A-ZÁÉÍÓÚ]{3,}(?:\s+[A-ZÁÉÍÓÚ]{3,})*)$/);
-      
-      if (colorMatch) {
-        const potentialColor = colorMatch[1].trim();
-        
-        // Verificar si alguna de las palabras en potentialColor es un color válido
-        const hasValidColor = potentialColor.split(/\s+/).some(word => VALID_COLORS.includes(word));
-        
-        if (hasValidColor) {
-          let color = potentialColor;
-          
-          // LIMPIEZA ADICIONAL: Si el color empieza con el final del nombre del equipo (mayúsculas pegadas)
-          // Ejemplo: "ORIBASKETVERDE CLARO" -> "VERDE CLARO"
-          // Solo cortamos si la parte sobrante antes del color es parte del nombre del equipo (mayúsculas largas)
-          const colorWords = potentialColor.split(/\s+/);
-          if (colorWords.length > 0) {
-            const firstWord = colorWords[0];
-            for (const validBase of VALID_COLORS) {
-              if (firstWord.endsWith(validBase) && firstWord !== validBase) {
-                // Si la palabra es ORIBASKETVERDE y termina en VERDE, nos quedamos con VERDE
-                colorWords[0] = validBase;
-                color = colorWords.join(' ');
-                break;
-              }
-            }
-          }
+      const words = line.split(/[\s/]+/);
+      const isAllCaps = words.every(w => /^[A-ZÁÉÍÓÚ]{3,}$/.test(w));
+      const hasBaseColor = words.some(w => BASE_COLORS.includes(w));
+      const hasControlWord = words.some(w => CONTROL_WORDS.includes(w));
 
-          // Buscar secundario
-          if (i + 1 < lines.length && lines[i+1].startsWith('/')) {
-            const secondary = lines[i+1].substring(1).trim().match(/^([A-ZÁÉÍÓÚ]{3,}(?:\s+[A-ZÁÉÍÓÚ]{3,})*)/);
-            if (secondary) {
-              color += ` / ${secondary[1].trim()}`;
-            }
-          }
-          return color;
+      if (isAllCaps && hasBaseColor && !hasControlWord) {
+        // CASO CRÍTICO: "EDM ORIHUELA AZUL" es un nombre de equipo. 
+        // El color real suele estar solo o con una barra (AMARILLO/BLANCO).
+        // Si la línea tiene muchas palabras (> 2) y estamos al principio, probablemente sea el equipo.
+        if (i < 2 && words.length > 2) {
+          // Si el nombre del equipo es "EDM ORIHUELA AZUL", lo saltamos para buscar el color real
+          continue; 
         }
+
+        let color = line;
+        
+        // Si el color es algo como "AZUL OSCURO", y la siguiente línea es "/BLANCO"
+        if (i + 1 < lines.length && lines[i+1].startsWith('/')) {
+          color += ` ${lines[i+1]}`;
+        }
+        
+        // Limpiar el formato final (ej: "VERDE CLARO /BLANCO" -> "VERDE CLARO / BLANCO")
+        return color.replace(/\s*\/\s*/g, ' / ').trim();
       }
     }
     
     return undefined;
   };
 
-  // Extraer zona Local: Todo entre "LOCALCAMISETAPANTALÓN" y "VISITANTE"
-  const localMatch = cleanBlock.match(/LOCAL\s*CAMISETA\s*PANTAL[OÓ]N([\s\S]*?)VISITANTE/i);
-  if (localMatch) {
-    result.localColor = extractFromZone(localMatch[1]);
+  // Extraer zona Local: Todo entre "LOCAL" (seguido de CAMISETA) y "VISITANTE"
+  const localParts = cleanBlock.split(/LOCAL\s*CAMISETA\s*PANTAL[OÓ]N/i);
+  if (localParts.length > 1) {
+    const localContent = localParts[1].split(/VISITANTE/i)[0];
+    result.localColor = extractFromZone(localContent);
   }
 
-  // Extraer zona Visitante: Todo entre "VISITANTECAMISETAPANTALÓN" y el siguiente bloque grande
-  const visitorMatch = cleanBlock.match(/VISITANTE\s*CAMISETA\s*PANTAL[OÓ]N([\s\S]*?)(?:EQUIPO ARBITRAL|ÁRBITROS)/i);
-  if (visitorMatch) {
-    result.visitorColor = extractFromZone(visitorMatch[1]);
+  // Extraer zona Visitante: Todo entre "VISITANTE" (seguido de CAMISETA) y "EQUIPO ARBITRAL"
+  const visitorParts = cleanBlock.split(/VISITANTE\s*CAMISETA\s*PANTAL[OÓ]N/i);
+  if (visitorParts.length > 1) {
+    const visitorContent = visitorParts[1].split(/EQUIPO ARBITRAL|ÁRBITROS/i)[0];
+    result.visitorColor = extractFromZone(visitorContent);
   }
 
   return result;
