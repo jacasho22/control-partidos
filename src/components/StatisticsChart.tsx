@@ -40,10 +40,10 @@ interface StatisticsChartProps {
 
 export default function StatisticsChart({ type, data, options }: StatisticsChartProps) {
   if (type === 'bar') {
-    return <Bar data={data} options={options} />;
+    return <Bar data={data as ChartData<'bar'>} options={options as ChartOptions<'bar'>} />;
   }
   if (type === 'pie') {
-    return <Pie data={data} options={options} />;
+    return <Pie data={data as ChartData<'pie'>} options={options as ChartOptions<'pie'>} />;
   }
   return null;
 }
