@@ -37,7 +37,7 @@ export async function POST(req: Request) {
           });
         }
 
-        const divName = (matchData.division || 'Sin división').trim();
+        const divName = (matchData.competition || matchData.division || 'Sin división').trim();
         let division = await tx.division.findFirst({
           where: { name: divName, categoryId: category.id },
         });
@@ -47,51 +47,62 @@ export async function POST(req: Request) {
           });
         }
 
-        if (!matchData.matchNumber || !matchData.date || !matchData.time || !matchData.localTeam || !matchData.visitorTeam || !matchData.role) {
+        const mId = matchData.matchNumber || matchData.id;
+        if (!mId || !matchData.date || !matchData.time || !matchData.localTeam || !matchData.visitorTeam || !matchData.role) {
+          console.log('PARTIDO SALTADO POR FALTA DE DATOS:', { 
+            mId, 
+            date: matchData.date, 
+            time: matchData.time, 
+            local: matchData.localTeam, 
+            role: matchData.role 
+          });
           continue;
         }
 
         const dateParts = matchData.date.split('/');
-        if (dateParts.length !== 3) continue;
+        if (dateParts.length !== 3) {
+          console.log('FECHA INVÁLIDA:', matchData.date);
+          continue;
+        }
         const [day, month, year] = dateParts;
-        const dateObj = new Date(`${year}-${month}-${day}T00:00:00Z`);
+        const dateObj = new Date(`${year}-${month}-${day}T12:00:00Z`); // Usamos mediodía para evitar problemas de zona horaria
 
         // 3. Upsert del partido con colores
         const match = await tx.match.upsert({
           where: {
             matchNumber_userId: {
-              matchNumber: matchData.matchNumber,
+              matchNumber: mId,
               userId: userId,
             },
           },
           update: {
             date: dateObj,
             time: matchData.time,
-            venue: matchData.venue,
-            venueAddress: matchData.venueAddress,
+            venue: matchData.venue || matchData.location || 'Sede no especificada',
+            venueAddress: matchData.venueAddress || matchData.city,
             localTeam: matchData.localTeam,
             visitorTeam: matchData.visitorTeam,
             categoryId: category.id,
             divisionId: division.id,
             role: matchData.role,
-            matchday: matchData.matchday,
+            matchday: matchData.matchday || 0,
             partners: matchData.partners,
             localColor: matchData.localColor,
             visitorColor: matchData.visitorColor,
             deletedAt: null,
           },
           create: {
-            matchNumber: matchData.matchNumber,
+            matchNumber: mId,
             date: dateObj,
             time: matchData.time,
-            venue: matchData.venue,
-            venueAddress: matchData.venueAddress,
+            venue: matchData.venue || matchData.location || 'Sede no especificada',
+            venueAddress: matchData.venueAddress || matchData.city,
             localTeam: matchData.localTeam,
             visitorTeam: matchData.visitorTeam,
             categoryId: category.id,
             divisionId: division.id,
             role: matchData.role,
-            matchday: matchData.matchday,
+            matchday: matchData.matchday || 0,
             partners: matchData.partners,
             localColor: matchData.localColor,
             visitorColor: matchData.visitorColor,
