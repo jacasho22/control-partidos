@@ -99,29 +99,45 @@ function MatchesContent() {
   const sortedWeeks = Object.keys(groupedMatches).sort((a, b) => b.localeCompare(a));
 
   return (
-    <div style={{ paddingBottom: '4rem' }}>
-      <div className="flex" style={{ justifyContent: 'space-between', marginBottom: '2rem', alignItems: 'center' }}>
-        <h1>Mis Partidos</h1>
+    <div style={{ paddingBottom: '6rem' }}>
+      <div className="flex" style={{ justifyContent: 'space-between', marginBottom: '2.5rem', alignItems: 'center' }}>
+        <h1 style={{ margin: 0 }}>Mis Partidos</h1>
         <button className="btn btn-primary" onClick={() => router.push('/upload')}>
-          Subir Nuevo PDF
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="17 8 12 3 7 8"></polyline>
+            <line x1="12" y1="3" x2="12" y2="15"></line>
+          </svg>
+          Subir PDF
         </button>
       </div>
 
-      <div className="card" style={{ marginBottom: '2rem' }}>
-        <input
-          type="text"
-          placeholder="Buscar por equipo, categoría o número..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          style={{ width: '100%', padding: '0.75rem', border: '1px solid var(--border)', borderRadius: '8px' }}
-        />
+      <div className="card" style={{ marginBottom: '2.5rem', padding: '0.75rem' }}>
+        <div style={{ position: 'relative' }}>
+          <span style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }}>🔍</span>
+          <input
+            type="text"
+            placeholder="Buscar por equipo, categoría o número..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            style={{ width: '100%', padding: '0.75rem 0.75rem 0.75rem 2.5rem', border: 'none', background: 'transparent' }}
+          />
+        </div>
       </div>
 
       {sortedWeeks.length > 0 ? (
         sortedWeeks.map(weekStart => (
-          <div key={weekStart} style={{ marginBottom: '2rem' }}>
-            <h3 style={{ marginBottom: '1rem', color: 'var(--text-muted)', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem' }}>
-              Semana del {new Date(weekStart).toLocaleDateString('es-ES')}
+          <div key={weekStart} style={{ marginBottom: '3rem' }}>
+            <h3 style={{ 
+              marginBottom: '1.25rem', 
+              color: 'var(--text)', 
+              fontSize: '1.1rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem'
+            }}>
+              <span style={{ width: '4px', height: '1.2rem', background: 'var(--primary)', borderRadius: '99px' }}></span>
+              Semana del {new Date(weekStart).toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })}
             </h3>
             <div className="grid">
               {groupedMatches[weekStart].map(match => (

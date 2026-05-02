@@ -100,67 +100,89 @@ export default function UploadPage() {
   };
 
   return (
-    <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-      <h1 className="mb-4">Subir Designaciones</h1>
-      <p className="text-muted mb-4">Sube uno o varios PDFs que descargas de la web para extraer automáticamente tus partidos.</p>
+    <div style={{ maxWidth: '900px', margin: '0 auto', paddingBottom: '4rem' }}>
+      <h1 className="mb-4" style={{ textAlign: 'center' }}>Subir Designaciones</h1>
+      <p className="text-muted mb-4" style={{ textAlign: 'center', fontSize: '1.1rem' }}>
+        Arrastra o selecciona los PDFs de tus designaciones para extraer los partidos automáticamente.
+      </p>
 
-      <div className="card">
+      <div className="card" style={{ padding: '2rem', border: '2px dashed var(--border-dark)', background: '#f8fafc', textAlign: 'center' }}>
         <form onSubmit={handleUpload}>
           <div className="form-group">
-            <label>Selecciona los archivos PDF</label>
-            <input type="file" accept=".pdf" multiple onChange={handleFileChange} />
+            <div style={{ marginBottom: '1.5rem' }}>
+              <span style={{ fontSize: '3rem' }}>📄</span>
+            </div>
+            <label style={{ fontSize: '1rem', marginBottom: '1rem' }}>Selecciona tus archivos PDF</label>
+            <input 
+              type="file" 
+              accept=".pdf" 
+              multiple 
+              onChange={handleFileChange} 
+              style={{ 
+                background: 'white', 
+                padding: '1.5rem', 
+                border: '1px solid var(--border-dark)',
+                cursor: 'pointer'
+              }} 
+            />
             {files.length > 0 && (
-              <p className="text-muted" style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}>
-                {files.length} archivo{files.length > 1 ? 's' : ''} seleccionado{files.length > 1 ? 's' : ''}
+              <p style={{ marginTop: '1rem', fontSize: '0.9rem', fontWeight: 600, color: 'var(--primary)' }}>
+                ✨ {files.length} archivo{files.length > 1 ? 's' : ''} listo{files.length > 1 ? 's' : ''} para analizar
               </p>
             )}
           </div>
-          <button type="submit" className="btn btn-primary" disabled={files.length === 0 || loading}>
-            {loading ? 'Procesando...' : `Analizar ${files.length > 0 ? files.length : ''} PDF${files.length > 1 ? 's' : ''}`}
+          <button type="submit" className="btn btn-primary" style={{ width: '100%', padding: '1rem' }} disabled={files.length === 0 || loading}>
+            {loading ? 'Procesando archivos...' : `Analizar PDF${files.length > 1 ? 's' : ''}`}
           </button>
         </form>
       </div>
 
-      {error && <div className="card" style={{ background: '#fee2e2', color: 'var(--error)', marginTop: '1rem' }}>{error}</div>}
+      {error && (
+        <div className="card" style={{ background: '#fef2f2', border: '1px solid #fee2e2', color: 'var(--error)', marginTop: '1.5rem', fontWeight: 600 }}>
+          ⚠️ {error}
+        </div>
+      )}
 
       {parsedMatches.length > 0 && (
         <div className="mt-4">
-          <h2 className="mb-4">Partidos Encontrados ({parsedMatches.length})</h2>
+          <div className="flex" style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+            <h2 style={{ fontSize: '1.5rem' }}>Partidos detectados ({parsedMatches.length})</h2>
+            <button className="btn" onClick={() => setParsedMatches([])} style={{ background: '#f1f5f9' }}>Limpiar</button>
+          </div>
+          
           <div className="grid">
             {parsedMatches.map((match, idx) => (
-              <div key={idx} className="card">
-                <div className="flex" style={{ justifyContent: 'space-between' }}>
-                  <strong>{match.date} - {match.time}</strong>
-                  <span style={{ fontSize: '0.8rem', background: 'var(--bg)', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>
-                    #{match.matchNumber}
-                  </span>
+              <div key={idx} className="card" style={{ padding: '1.25rem' }}>
+                <div className="flex" style={{ justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                  <span style={{ fontWeight: 800, color: 'var(--primary)', fontSize: '0.9rem' }}>{match.date} · {match.time}</span>
+                  <span style={{ fontSize: '0.75rem', background: '#f1f5f9', padding: '0.2rem 0.5rem', borderRadius: '6px', fontWeight: 700 }}>#{match.matchNumber}</span>
                 </div>
-                <div className="mt-4">
-                  <p><strong>{match.localTeam}</strong> vs <strong>{match.visitorTeam}</strong></p>
-                  <p className="text-muted" style={{ fontSize: '0.9rem' }}>{match.category} - {match.division}</p>
+                <div style={{ marginBottom: '1rem' }}>
+                  <p style={{ fontWeight: 800, fontSize: '1.1rem' }}>{match.localTeam} <span style={{color:'#cbd5e1', fontSize:'0.8rem'}}>VS</span> {match.visitorTeam}</p>
+                  <p className="text-muted" style={{ fontSize: '0.85rem', fontWeight: 600 }}>{match.category} · {match.division}</p>
                 </div>
-                <div className="mt-4" style={{ borderTop: '1px solid var(--border)', paddingTop: '0.5rem', fontSize: '0.9rem' }}>
-                  <p>📍 {match.venue}</p>
+                <div style={{ fontSize: '0.875rem', color: '#475569', background: '#f8fafc', padding: '0.75rem', borderRadius: '8px' }}>
+                  <p style={{ marginBottom: '0.25rem' }}>📍 {match.venue}</p>
                   <p>👤 {match.role}</p>
-                  {match.partners && match.partners.length > 0 && (
-                    <div className="mt-2" style={{ borderTop: '1px dashed var(--border)', paddingTop: '0.5rem' }}>
-                      <p style={{ fontWeight: 'bold', fontSize: '0.8rem', marginBottom: '0.2rem' }}>Compañeros:</p>
-                      {match.partners.map((p: Partner, pIdx: number) => (
-                        <div key={pIdx} style={{ fontSize: '0.8rem', marginLeft: '0.5rem' }}>
-                          <span className="text-muted">{p.role}:</span> {p.name}
-                          {p.phone && <span style={{ color: 'var(--primary)', marginLeft: '0.5rem' }}>📞 {p.phone}</span>}
-                        </div>
-                      ))}
-                    </div>
-                  )}
                 </div>
               </div>
             ))}
           </div>
-          <div className="mt-4 flex" style={{ justifyContent: 'flex-end' }}>
-            <button className="btn" onClick={() => setParsedMatches([])} style={{ marginRight: '1rem' }}>Cancelar</button>
-            <button className="btn btn-primary" onClick={handleSaveMatches} disabled={loading}>
-              Confirmar y Guardar Partidos
+
+          <div style={{ 
+            marginTop: '2rem', 
+            position: 'sticky', 
+            bottom: '2rem', 
+            background: 'white', 
+            padding: '1.5rem', 
+            borderRadius: '16px', 
+            boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)',
+            border: '1px solid var(--border-dark)',
+            display: 'flex',
+            justifyContent: 'center'
+          }}>
+            <button className="btn btn-primary" onClick={handleSaveMatches} disabled={loading} style={{ padding: '1rem 3rem', fontSize: '1.1rem' }}>
+              {loading ? 'Guardando...' : 'Confirmar y Guardar Todo'}
             </button>
           </div>
         </div>

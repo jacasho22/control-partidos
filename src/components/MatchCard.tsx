@@ -274,102 +274,167 @@ export default function MatchCard({ match, onPaymentUpdate }: MatchCardProps) {
   const totalPayment = (match.payment?.matchPayment || 0) + (match.payment?.gasPayment || 0);
 
   return (
-    <div className="card" style={{ position: 'relative' }}>
+    <div className="card" style={{ position: 'relative', overflow: 'hidden' }}>
       <button 
         onClick={handleDelete}
         style={{
           position: 'absolute',
-          top: '0.5rem',
-          right: '0.5rem',
-          background: 'none',
+          top: '0.75rem',
+          right: '0.75rem',
+          background: '#fee2e2',
           border: 'none',
           color: '#ef4444',
           cursor: 'pointer',
-          padding: '0.2rem',
+          padding: '0.4rem',
+          borderRadius: '8px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          zIndex: 10
+          zIndex: 10,
+          transition: 'all 0.2s'
         }}
+        className="delete-btn"
         title="Borrar partido"
         disabled={loading}
       >
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
           <path d="M3 6h18"></path>
           <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
           <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
-          <line x1="10" y1="11" x2="10" y2="17"></line>
-          <line x1="14" y1="11" x2="14" y2="17"></line>
         </svg>
       </button>
 
-      <div className="flex" style={{ justifyContent: 'space-between', marginBottom: '0.5rem', paddingRight: '2rem' }}>
-        <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>{formattedDate} - {match.time}</span>
-        <span style={{ fontSize: '0.8rem', background: 'var(--bg)', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>
+      <div className="flex" style={{ justifyContent: 'space-between', marginBottom: '1.25rem', paddingRight: '2.5rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.025em' }}>
+            {formattedDate}
+          </span>
+          <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)', fontWeight: 500 }}>
+            🕒 {match.time}
+          </span>
+        </div>
+        <span style={{ 
+          fontSize: '0.75rem', 
+          background: '#f8fafc', 
+          color: '#64748b',
+          padding: '0.25rem 0.6rem', 
+          borderRadius: '6px',
+          border: '1px solid #e2e8f0',
+          fontWeight: 600,
+          height: 'fit-content'
+        }}>
           #{match.matchNumber}
         </span>
       </div>
 
       <div className="mb-4">
-        <div style={{ display: 'flex', gap: '1rem', marginBottom: '0.75rem', alignItems: 'flex-start' }}>
+        <div style={{ 
+          display: 'flex', 
+          gap: '1rem', 
+          marginBottom: '1rem', 
+          alignItems: 'center',
+          background: '#f8fafc',
+          padding: '1rem',
+          borderRadius: '12px',
+          border: '1px solid #f1f5f9'
+        }}>
           <div style={{ flex: 1 }}>
-            <p style={{ fontWeight: 'bold', fontSize: '1.05rem', marginBottom: '0.25rem' }}>{match.localTeam}</p>
+            <p style={{ fontWeight: 800, fontSize: '1rem', marginBottom: '0.4rem', color: '#1e293b' }}>{match.localTeam}</p>
             {match.localColor && (
               <span style={{ 
-                fontSize: '0.75rem', 
-                background: '#f3f4f6', 
-                padding: '0.1rem 0.4rem', 
-                borderRadius: '4px',
-                color: '#4b5563',
-                border: '1px solid #e5e7eb'
+                fontSize: '0.7rem', 
+                background: '#fff', 
+                padding: '0.2rem 0.5rem', 
+                borderRadius: '6px',
+                color: '#64748b',
+                fontWeight: 700,
+                border: '1px solid #e2e8f0',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px'
               }}>
-                👕 {match.localColor}
+                <span style={{ fontSize: '0.9rem' }}>👕</span> {match.localColor}
               </span>
             )}
           </div>
-          <div style={{ padding: '0.25rem', color: 'var(--text-muted)', fontWeight: 'bold' }}>vs</div>
+          <div style={{ 
+            fontSize: '0.75rem', 
+            fontWeight: 900, 
+            color: '#cbd5e1',
+            textTransform: 'uppercase'
+          }}>VS</div>
           <div style={{ flex: 1, textAlign: 'right' }}>
-            <p style={{ fontWeight: 'bold', fontSize: '1.05rem', marginBottom: '0.25rem' }}>{match.visitorTeam}</p>
+            <p style={{ fontWeight: 800, fontSize: '1rem', marginBottom: '0.4rem', color: '#1e293b' }}>{match.visitorTeam}</p>
             {match.visitorColor && (
               <span style={{ 
-                fontSize: '0.75rem', 
-                background: '#f3f4f6', 
-                padding: '0.1rem 0.4rem', 
-                borderRadius: '4px',
-                color: '#4b5563',
-                border: '1px solid #e5e7eb'
+                fontSize: '0.7rem', 
+                background: '#fff', 
+                padding: '0.2rem 0.5rem', 
+                borderRadius: '6px',
+                color: '#64748b',
+                fontWeight: 700,
+                border: '1px solid #e2e8f0',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                flexDirection: 'row-reverse'
               }}>
-                👕 {match.visitorColor}
+                <span style={{ fontSize: '0.9rem' }}>👕</span> {match.visitorColor}
               </span>
             )}
           </div>
         </div>
         
-        <p className="text-muted" style={{ fontSize: '0.9rem', marginBottom: '0.5rem' }}>{match.category.name} - {match.division.name}</p>
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
+          <span style={{ fontSize: '0.75rem', background: '#eff6ff', color: '#3b82f6', padding: '0.2rem 0.6rem', borderRadius: '9999px', fontWeight: 700 }}>
+            {match.category.name}
+          </span>
+          <span style={{ fontSize: '0.75rem', background: '#f1f5f9', color: '#475569', padding: '0.2rem 0.6rem', borderRadius: '9999px', fontWeight: 700 }}>
+            {match.division.name}
+          </span>
+          <span style={{ fontSize: '0.75rem', background: '#fef2f2', color: '#ef4444', padding: '0.2rem 0.6rem', borderRadius: '9999px', fontWeight: 700 }}>
+            👤 {match.role}
+          </span>
+        </div>
         
         {isEditingAddress ? (
-            <div style={{ display: 'flex', gap: '0.5rem', width: '100%', marginBottom: '0.5rem' }}>
+            <div style={{ display: 'flex', gap: '0.5rem', width: '100%', marginBottom: '0.75rem' }}>
               <input 
                 type="text" 
                 value={editedAddress} 
                 onChange={(e) => setEditedAddress(e.target.value)}
-                style={{ flex: 1, padding: '0.2rem', fontSize: '0.85rem' }}
+                style={{ flex: 1, padding: '0.5rem', fontSize: '0.875rem' }}
               />
-              <button onClick={handleSaveAddress} style={{cursor:'pointer'}}>💾</button>
-              <button onClick={() => setIsEditingAddress(false)} style={{cursor:'pointer'}}>❌</button>
+              <button onClick={handleSaveAddress} className="btn" style={{ padding: '0.5rem', background: 'var(--success)', color: 'white' }}>✓</button>
+              <button onClick={() => setIsEditingAddress(false)} className="btn" style={{ padding: '0.5rem', background: '#f1f5f9' }}>✕</button>
             </div>
           ) : (
-            <p style={{ fontSize: '0.85rem', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '5px' }}>
-              📍 {match.venue} 
+            <p style={{ 
+              fontSize: '0.875rem', 
+              marginBottom: '1rem', 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '8px',
+              color: '#475569',
+              background: '#fff',
+              padding: '0.5rem 0.75rem',
+              borderRadius: '10px',
+              border: '1px solid #f1f5f9'
+            }}>
+              <span style={{ fontSize: '1.1rem' }}>📍</span> 
+              <span style={{ fontWeight: 500 }}>{match.venue}</span>
               {match.venueAddress && match.venueAddress !== match.venue && (
-                <span className="text-muted" style={{ fontSize: '0.8rem' }}>({match.venueAddress})</span>
+                <span style={{ color: '#94a3b8', fontSize: '0.8rem' }}>({match.venueAddress})</span>
               )}
               <button 
                 onClick={() => setIsEditingAddress(true)} 
-                title="Editar ubicación manualmente"
-                style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 0 }}
+                title="Editar ubicación"
+                style={{ border: 'none', background: 'none', cursor: 'pointer', padding: '4px', color: '#94a3b8' }}
               >
-                ✏️
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                </svg>
               </button>
             </p>
           )}
@@ -486,25 +551,64 @@ export default function MatchCard({ match, onPaymentUpdate }: MatchCardProps) {
           )}
         </div>
 
-        <p style={{ fontSize: '0.85rem', marginBottom: '0.5rem' }}>👤 Tu función: <strong>{match.role}</strong></p>
+        <p style={{ fontSize: '0.875rem', marginBottom: '1rem', color: '#64748b' }}>
+          <span style={{ fontWeight: 600, color: '#1e293b' }}>👤 Tu función:</span> {match.role}
+        </p>
         
         {partners.length > 0 && (
-          <div style={{ marginTop: '0.75rem', padding: '0.75rem', background: 'var(--bg)', borderRadius: '8px', border: '1px solid var(--border)' }}>
-            <p style={{ fontSize: '0.8rem', fontWeight: 'bold', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.5rem', letterSpacing: '0.05em' }}>
+          <div style={{ 
+            marginTop: '1rem', 
+            padding: '1rem', 
+            background: '#f8fafc', 
+            borderRadius: '12px', 
+            border: '1px solid #f1f5f9' 
+          }}>
+            <p style={{ 
+              fontSize: '0.7rem', 
+              fontWeight: 800, 
+              textTransform: 'uppercase', 
+              color: '#94a3b8', 
+              marginBottom: '0.75rem', 
+              letterSpacing: '0.05em',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              </svg>
               Equipo Arbitral
             </p>
             {partners.map((partner, idx) => (
-              <div key={idx} style={{ fontSize: '0.85rem', marginBottom: idx !== partners.length - 1 ? '0.5rem' : 0 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: 'var(--text-muted)', width: '90px', flexShrink: 0 }}>{partner.role}:</span>
-                  <span style={{ flex: 1, fontWeight: 500 }}>{partner.name}</span>
+              <div key={idx} style={{ fontSize: '0.85rem', marginBottom: idx !== partners.length - 1 ? '0.6rem' : 0 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ color: '#64748b', fontSize: '0.75rem', fontWeight: 600 }}>{partner.role}</span>
+                  <span style={{ fontWeight: 700, color: '#334155' }}>{partner.name}</span>
                 </div>
                 {partner.phone && (
-                  <div style={{ display: 'flex', alignItems: 'center', marginTop: '0.1rem', color: 'var(--primary)', fontWeight: 500 }}>
-                    <svg style={{ marginRight: '0.4rem' }} xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
-                    </svg>
-                    <a href={`tel:${partner.phone}`} style={{ color: 'inherit', textDecoration: 'none' }}>{partner.phone}</a>
+                  <div style={{ display: 'flex', alignItems: 'center', marginTop: '0.2rem', justifyContent: 'flex-end' }}>
+                    <a 
+                      href={`tel:${partner.phone}`} 
+                      style={{ 
+                        color: 'var(--primary)', 
+                        fontWeight: 700, 
+                        fontSize: '0.75rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        background: '#eff6ff',
+                        padding: '0.1rem 0.5rem',
+                        borderRadius: '6px'
+                      }}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                      </svg>
+                      {partner.phone}
+                    </a>
                   </div>
                 )}
               </div>
@@ -513,67 +617,60 @@ export default function MatchCard({ match, onPaymentUpdate }: MatchCardProps) {
         )}
       </div>
 
-      <div style={{ borderTop: '1px solid var(--border)', paddingTop: '1rem', marginTop: '1rem' }}>
+      <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '1.25rem', marginTop: '1.25rem' }}>
         {showPaymentForm ? (
           <form onSubmit={handleUpdatePayment}>
-            <div className="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginBottom: '0.5rem' }}>
+            <div className="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
               <div className="form-group" style={{ marginBottom: 0 }}>
-                <label style={{ fontSize: '0.8rem' }}>Partido (€)</label>
+                <label>Partido (€)</label>
                 <input
                   type="number"
                   step="0.01"
                   value={matchPayment}
                   onChange={(e) => setMatchPayment(e.target.value)}
                   placeholder="0.00"
+                  style={{ padding: '0.5rem' }}
                 />
               </div>
               <div className="form-group" style={{ marginBottom: 0 }}>
-                <label style={{ fontSize: '0.8rem' }}>Gasolina (€)</label>
-                <div style={{ display: 'flex', gap: '0.25rem' }}>
+                <label>Gasolina (€)</label>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
                   <input
                     type="number"
                     step="0.01"
                     value={gasPayment}
                     onChange={(e) => setGasPayment(e.target.value)}
                     placeholder="0.00"
+                    style={{ padding: '0.5rem' }}
                   />
                   <button 
                     type="button" 
                     onClick={handleAutoCalculateGas}
                     className="btn"
                     disabled={calculatingGas}
-                    style={{ background: '#f1f5f9', padding: '0 0.5rem', border: '1px solid var(--border)', fontSize: '1rem' }}
-                    title="Calcular según distancia ayuntamientos"
+                    title="Calcular automáticamente"
+                    style={{ padding: '0.5rem', background: 'var(--primary-light)', color: 'var(--primary)' }}
                   >
-                    {calculatingGas ? '...' : '🧮'}
+                    {calculatingGas ? '...' : '⚡'}
                   </button>
                 </div>
               </div>
             </div>
-            <div className="flex" style={{ justifyContent: 'flex-end', gap: '0.5rem' }}>
-              <button type="button" className="btn" style={{ fontSize: '0.8rem' }} onClick={() => setShowPaymentForm(false)}>
-                Cancelar
-              </button>
-              <button type="submit" className="btn btn-primary" style={{ fontSize: '0.8rem' }} disabled={loading}>
-                {loading ? '...' : 'Guardar'}
-              </button>
+            <div className="flex" style={{ justifyContent: 'flex-end' }}>
+              <button type="button" onClick={() => setShowPaymentForm(false)} className="btn" style={{ background: '#f1f5f9' }}>Cancelar</button>
+              <button type="submit" className="btn btn-primary" disabled={loading}>Guardar</button>
             </div>
           </form>
         ) : (
           <div className="flex" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
-              <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Pago total:</p>
-              <p style={{ fontWeight: 'bold', color: 'var(--success)', fontSize: '1.1rem' }}>
+              <p style={{ fontSize: '0.75rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '0.1rem' }}>Total Cobro</p>
+              <p style={{ fontSize: '1.25rem', fontWeight: 900, color: totalPayment > 0 ? 'var(--success)' : '#cbd5e1' }}>
                 {totalPayment.toFixed(2)}€
               </p>
-              {totalPayment > 0 && (
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                  ({match.payment?.matchPayment} P + {match.payment?.gasPayment} G)
-                </span>
-              )}
             </div>
-            <button className="btn" style={{ fontSize: '0.85rem', border: '1px solid var(--border)' }} onClick={() => setShowPaymentForm(true)}>
-              {totalPayment > 0 ? 'Editar Pago' : 'Añadir Pago'}
+            <button onClick={() => setShowPaymentForm(true)} className="btn btn-secondary" style={{ padding: '0.5rem 1rem' }}>
+              Editar Pago
             </button>
           </div>
         )}
