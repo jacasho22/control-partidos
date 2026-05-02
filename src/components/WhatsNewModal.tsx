@@ -56,19 +56,22 @@ export default function WhatsNewModal({ version, onClose }: WhatsNewModalProps) 
           <h4 style={{ marginBottom: '1rem', color: 'var(--primary)' }}>Novedades destacadas:</h4>
           <ul style={{ paddingLeft: '1.2rem', lineHeight: '1.6' }}>
             <li style={{ marginBottom: '0.8rem' }}>
-              <strong>🤖 Tarifas Automáticas:</strong> Los importes de arbitraje se calculan solos según la categoría y tu función.
+              <strong>✨ Rediseño Visual:</strong> Nueva interfaz mucho más limpia, moderna y profesional, optimizada para que veas tus partidos de un vistazo.
             </li>
             <li style={{ marginBottom: '0.8rem' }}>
-              <strong>🎨 Equipaciones:</strong> Ahora extraemos automáticamente los colores de las camisetas de los PDFs.
+              <strong>👥 Equipo Arbitral Completo:</strong> Ahora capturamos correctamente a todos los compañeros (Auxiliares, Anotadores, Cronos) y sus teléfonos de contacto.
             </li>
             <li style={{ marginBottom: '0.8rem' }}>
-              <strong>🛡️ Soft Delete:</strong> Tus datos están más seguros. Los borrados son reversibles para proteger tu histórico.
+              <strong>🎨 Equipaciones Automáticas:</strong> Los colores de las camisetas se extraen directamente del PDF y se muestran en tus tarjetas de partido.
             </li>
             <li style={{ marginBottom: '0.8rem' }}>
-              <strong>📈 Pipeline CI/CD:</strong> Despliegues automáticos y ultra-seguros con validaciones de calidad profesional.
+              <strong>🧹 Limpieza de Texto:</strong> Hemos corregido el parser para evitar palabras juntas como "ANOTADORJUAN" o "TELÉFONOPOBLACIÓN".
             </li>
             <li style={{ marginBottom: '0.8rem' }}>
-              <strong>🧪 Suite de Tests:</strong> Hemos añadido pruebas automáticas para garantizar que el sistema nunca falle.
+              <strong>📍 GPS y Ubicación:</strong> Edita las direcciones manualmente y abre la ruta directamente en <strong>Google Maps</strong> o <strong>Waze</strong>.
+            </li>
+            <li style={{ marginBottom: '0.8rem' }}>
+              <strong>⚡ Máxima Estabilidad:</strong> Mejoras internas en el motor de la aplicación para una navegación fluida y sin errores de carga.
             </li>
           </ul>
         </div>

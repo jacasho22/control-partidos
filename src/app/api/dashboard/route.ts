@@ -26,7 +26,7 @@ export async function GET() {
       select: { lastVersionSeen: true }
     });
 
-    const CURRENT_VERSION = '1.1.0';
+    const CURRENT_VERSION = '1.2.0';
     const showUpdateModal = user?.lastVersionSeen !== CURRENT_VERSION;
 
     if (allMatches.length === 0) {
