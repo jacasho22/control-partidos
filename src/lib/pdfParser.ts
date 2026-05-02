@@ -126,45 +126,60 @@ export async function parseDesignationPdf(buffer: Buffer): Promise<MatchData[]> 
     // Extraer Compañeros (EQUIPO ARBITRAL)
     const partners: PartnerData[] = [];
     const arbitralSection = contentAfter.split(/EQUIPO ARBITRAL/)[1] || '';
-    const partnerBlocks = arbitralSection.split(/FUNCIÓN\s*NOMBRE Y APELLIDOS|FUNCIÓNNOMBRE Y APELLIDOS/);
     
-    for (let k = 1; k < partnerBlocks.length; k++) {
-      let pBlock = partnerBlocks[k];
+    // El PDF suele listar los oficiales uno tras otro. 
+    // Buscamos patrones de FUNCIÓN + NOMBRE (LICENCIA)
+    const partnerRegex = /(ARBITRO\s+PRINCIPAL|ARBITRO\s+AUXILIAR|ANOTADOR|CRONOMETRADOR|AYUDANTE\s+ANOTADOR|DELEGADO\s+DE\s+CAMPO)(?:(?!\d{9}).)*?\s+([A-ZÁÉÍÓÚ\s,]+)\s*\((\d+)\)(?:.*?(?:TELÉFONO|TELÉFONOPOBLACIÓN)\s*(\d{9}))?/gs;
+    
+    let m;
+    while ((m = partnerRegex.exec(arbitralSection)) !== null) {
+      const role = m[1].trim();
+      const name = m[2].trim();
+      const license = m[3];
+      const phone = m[4] || '';
       
-      // Corregir palabras juntas típicas de la extracción de texto del PDF
-      pBlock = pBlock
-        .replace(/ANOTADOR([A-ZÁÉÍÓÚ])/g, 'ANOTADOR $1')
-        .replace(/CRONOMETRADOR([A-ZÁÉÍÓÚ])/g, 'CRONOMETRADOR $1')
-        .replace(/AYUDANTE ANOTADOR([A-ZÁÉÍÓÚ])/g, 'AYUDANTE ANOTADOR $1')
-        .replace(/ARBITRO PRINCIPAL([A-ZÁÉÍÓÚ])/g, 'ARBITRO PRINCIPAL $1')
-        .replace(/TELÉFONOPOBLACIÓN/g, 'TELÉFONO POBLACIÓN')
-        .replace(/(\d{9})([A-ZÁÉÍÓÚ])/g, '$1 $2'); // Separa teléfono de la población
+      partners.push({ role, name, license, phone });
+    }
 
-      const pLines = pBlock.split('\n').map((l: string) => l.trim()).filter((l: string) => l.length > 0);
-      
-      if (pLines.length >= 2) {
-        // pLines[0] es la función (puede estar en 2 líneas)
-        // pLines[1] es el nombre y licencia
-        let role = pLines[0];
-        let nameAndLicense = pLines[1];
+    // Si el regex no capturó nada, intentar el método de bloques pero más flexible
+    if (partners.length === 0) {
+      const partnerBlocks = arbitralSection.split(/FUNCIÓN\s*NOMBRE Y APELLIDOS|FUNCIÓNNOMBRE Y APELLIDOS/);
+      for (let k = 1; k < partnerBlocks.length; k++) {
+        let pBlock = partnerBlocks[k];
         
-        if (role === 'ARBITRO' && pLines[1] === 'PRINCIPAL') {
-          role = 'ARBITRO PRINCIPAL';
-          nameAndLicense = pLines[2];
+        // Limpiar el bloque de ruidos de extracción
+        pBlock = pBlock
+          .replace(/TELÉFONOPOBLACIÓN/g, 'TELÉFONO POBLACIÓN')
+          .replace(/(\d{9})([A-ZÁÉÍÓÚ])/g, '$1 $2');
+
+        const pLines = pBlock.split('\n').map((l: string) => l.trim()).filter((l: string) => l.length > 0);
+        
+        if (pLines.length >= 2) {
+          let role = '';
+          let nameAndLicense = '';
+          
+          // Detectar rol y nombre en las primeras líneas
+          const firstLine = pLines[0].toUpperCase();
+          if (firstLine.includes('ARBITRO') || firstLine.includes('ANOTADOR') || firstLine.includes('CRONOMETRADOR')) {
+            role = pLines[0];
+            nameAndLicense = pLines[1];
+            // Caso especial "ARBITRO" + "PRINCIPAL" en líneas distintas
+            if (role === 'ARBITRO' && pLines[1] === 'PRINCIPAL') {
+              role = 'ARBITRO PRINCIPAL';
+              nameAndLicense = pLines[2];
+            }
+          }
+
+          if (role && nameAndLicense) {
+            const nameMatch = nameAndLicense.match(/([^(]+)\s+\((\d+)\)/);
+            const name = nameMatch ? nameMatch[1].trim() : nameAndLicense;
+            const license = nameMatch ? nameMatch[2] : '';
+            const phoneMatch = pBlock.match(/(?:TELÉFONO|TELÉFONO POBLACIÓN)\s*(\d{9})/i);
+            const phone = phoneMatch ? phoneMatch[1] : '';
+            
+            partners.push({ role, name, license, phone });
+          }
         }
-
-        const nameMatch = nameAndLicense?.match(/([^(]+)\s+\((\d+)\)/);
-        const name = nameMatch ? nameMatch[1].trim() : nameAndLicense;
-        const license = nameMatch ? nameMatch[2] : '';
-
-        // Buscar teléfono en las siguientes líneas
-        let phone = '';
-        const phoneMatch = pBlock.match(/TELÉFONOPOBLACIÓN\s*\n(\d{9})/);
-        if (phoneMatch) {
-          phone = phoneMatch[1];
-        }
-
-        partners.push({ role, name, license, phone });
       }
     }
 
