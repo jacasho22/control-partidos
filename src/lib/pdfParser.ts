@@ -126,10 +126,20 @@ export async function parseDesignationPdf(buffer: Buffer): Promise<MatchData[]> 
     // Extraer Compañeros (EQUIPO ARBITRAL)
     const partners: PartnerData[] = [];
     const arbitralSection = contentAfter.split(/EQUIPO ARBITRAL/)[1] || '';
-    const partnerBlocks = arbitralSection.split(/FUNCIÓNNOMBRE Y APELLIDOS/);
+    const partnerBlocks = arbitralSection.split(/FUNCIÓN\s*NOMBRE Y APELLIDOS|FUNCIÓNNOMBRE Y APELLIDOS/);
     
     for (let k = 1; k < partnerBlocks.length; k++) {
-      const pBlock = partnerBlocks[k];
+      let pBlock = partnerBlocks[k];
+      
+      // Corregir palabras juntas típicas de la extracción de texto del PDF
+      pBlock = pBlock
+        .replace(/ANOTADOR([A-ZÁÉÍÓÚ])/g, 'ANOTADOR $1')
+        .replace(/CRONOMETRADOR([A-ZÁÉÍÓÚ])/g, 'CRONOMETRADOR $1')
+        .replace(/AYUDANTE ANOTADOR([A-ZÁÉÍÓÚ])/g, 'AYUDANTE ANOTADOR $1')
+        .replace(/ARBITRO PRINCIPAL([A-ZÁÉÍÓÚ])/g, 'ARBITRO PRINCIPAL $1')
+        .replace(/TELÉFONOPOBLACIÓN/g, 'TELÉFONO POBLACIÓN')
+        .replace(/(\d{9})([A-ZÁÉÍÓÚ])/g, '$1 $2'); // Separa teléfono de la población
+
       const pLines = pBlock.split('\n').map((l: string) => l.trim()).filter((l: string) => l.length > 0);
       
       if (pLines.length >= 2) {

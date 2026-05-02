@@ -274,295 +274,157 @@ export default function MatchCard({ match, onPaymentUpdate }: MatchCardProps) {
   const totalPayment = (match.payment?.matchPayment || 0) + (match.payment?.gasPayment || 0);
 
   return (
-    <div className="card" style={{ position: 'relative', overflow: 'hidden' }}>
-      <button 
-        onClick={handleDelete}
-        style={{
-          position: 'absolute',
-          top: '0.75rem',
-          right: '0.75rem',
-          background: '#fee2e2',
-          border: 'none',
-          color: '#ef4444',
-          cursor: 'pointer',
-          padding: '0.4rem',
-          borderRadius: '8px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 10,
-          transition: 'all 0.2s'
-        }}
-        className="delete-btn"
-        title="Borrar partido"
-        disabled={loading}
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M3 6h18"></path>
-          <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
-          <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
-        </svg>
-      </button>
-
-      <div className="flex" style={{ justifyContent: 'space-between', marginBottom: '1.25rem', paddingRight: '2.5rem' }}>
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.025em' }}>
+    <div className="card" style={{ position: 'relative', overflow: 'hidden', border: '1px solid #edf2f7', padding: '0' }}>
+      {/* Header con degradado suave */}
+      <div style={{ 
+        background: 'linear-gradient(to right, #f8fafc, #ffffff)', 
+        padding: '1.25rem', 
+        borderBottom: '1px solid #f1f5f9',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center'
+      }}>
+        <div>
+          <div style={{ 
+            fontSize: '0.8rem', 
+            fontWeight: 800, 
+            color: 'var(--primary)', 
+            textTransform: 'uppercase', 
+            letterSpacing: '0.05em',
+            marginBottom: '0.2rem'
+          }}>
             {formattedDate}
-          </span>
-          <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)', fontWeight: 500 }}>
-            🕒 {match.time}
-          </span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ fontSize: '0.9rem', color: '#1e293b', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+              {match.time}
+            </span>
+            <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 600 }}>#{match.matchNumber}</span>
+          </div>
         </div>
-        <span style={{ 
-          fontSize: '0.75rem', 
-          background: '#f8fafc', 
-          color: '#64748b',
-          padding: '0.25rem 0.6rem', 
-          borderRadius: '6px',
-          border: '1px solid #e2e8f0',
-          fontWeight: 600,
-          height: 'fit-content'
-        }}>
-          #{match.matchNumber}
-        </span>
+        
+        <button 
+          onClick={handleDelete}
+          style={{
+            background: '#fff',
+            border: '1px solid #fee2e2',
+            color: '#ef4444',
+            cursor: 'pointer',
+            padding: '0.5rem',
+            borderRadius: '10px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'all 0.2s',
+            boxShadow: '0 2px 4px rgba(239, 68, 68, 0.05)'
+          }}
+          className="delete-btn-hover"
+          title="Borrar partido"
+          disabled={loading}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 6h18"></path>
+            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+          </svg>
+        </button>
       </div>
 
-      <div className="mb-4">
+      <div style={{ padding: '1.25rem' }}>
+        {/* Sección de Equipos */}
         <div style={{ 
           display: 'flex', 
-          gap: '1rem', 
-          marginBottom: '1rem', 
-          alignItems: 'center',
-          background: '#f8fafc',
-          padding: '1rem',
-          borderRadius: '12px',
-          border: '1px solid #f1f5f9'
+          flexDirection: 'column',
+          gap: '1rem',
+          marginBottom: '1.5rem'
         }}>
-          <div style={{ flex: 1 }}>
-            <p style={{ fontWeight: 800, fontSize: '1rem', marginBottom: '0.4rem', color: '#1e293b' }}>{match.localTeam}</p>
-            {match.localColor && (
-              <span style={{ 
-                fontSize: '0.7rem', 
-                background: '#fff', 
-                padding: '0.2rem 0.5rem', 
-                borderRadius: '6px',
-                color: '#64748b',
-                fontWeight: 700,
-                border: '1px solid #e2e8f0',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '4px'
-              }}>
-                <span style={{ fontSize: '0.9rem' }}>👕</span> {match.localColor}
-              </span>
-            )}
-          </div>
-          <div style={{ 
-            fontSize: '0.75rem', 
-            fontWeight: 900, 
-            color: '#cbd5e1',
-            textTransform: 'uppercase'
-          }}>VS</div>
-          <div style={{ flex: 1, textAlign: 'right' }}>
-            <p style={{ fontWeight: 800, fontSize: '1rem', marginBottom: '0.4rem', color: '#1e293b' }}>{match.visitorTeam}</p>
-            {match.visitorColor && (
-              <span style={{ 
-                fontSize: '0.7rem', 
-                background: '#fff', 
-                padding: '0.2rem 0.5rem', 
-                borderRadius: '6px',
-                color: '#64748b',
-                fontWeight: 700,
-                border: '1px solid #e2e8f0',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '4px',
-                flexDirection: 'row-reverse'
-              }}>
-                <span style={{ fontSize: '0.9rem' }}>👕</span> {match.visitorColor}
-              </span>
-            )}
-          </div>
-        </div>
-        
-        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
-          <span style={{ fontSize: '0.75rem', background: '#eff6ff', color: '#3b82f6', padding: '0.2rem 0.6rem', borderRadius: '9999px', fontWeight: 700 }}>
-            {match.category.name}
-          </span>
-          <span style={{ fontSize: '0.75rem', background: '#f1f5f9', color: '#475569', padding: '0.2rem 0.6rem', borderRadius: '9999px', fontWeight: 700 }}>
-            {match.division.name}
-          </span>
-          <span style={{ fontSize: '0.75rem', background: '#fef2f2', color: '#ef4444', padding: '0.2rem 0.6rem', borderRadius: '9999px', fontWeight: 700 }}>
-            👤 {match.role}
-          </span>
-        </div>
-        
-        {isEditingAddress ? (
-            <div style={{ display: 'flex', gap: '0.5rem', width: '100%', marginBottom: '0.75rem' }}>
-              <input 
-                type="text" 
-                value={editedAddress} 
-                onChange={(e) => setEditedAddress(e.target.value)}
-                style={{ flex: 1, padding: '0.5rem', fontSize: '0.875rem' }}
-              />
-              <button onClick={handleSaveAddress} className="btn" style={{ padding: '0.5rem', background: 'var(--success)', color: 'white' }}>✓</button>
-              <button onClick={() => setIsEditingAddress(false)} className="btn" style={{ padding: '0.5rem', background: '#f1f5f9' }}>✕</button>
-            </div>
-          ) : (
-            <p style={{ 
-              fontSize: '0.875rem', 
-              marginBottom: '1rem', 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '8px',
-              color: '#475569',
-              background: '#fff',
-              padding: '0.5rem 0.75rem',
-              borderRadius: '10px',
-              border: '1px solid #f1f5f9'
-            }}>
-              <span style={{ fontSize: '1.1rem' }}>📍</span> 
-              <span style={{ fontWeight: 500 }}>{match.venue}</span>
-              {match.venueAddress && match.venueAddress !== match.venue && (
-                <span style={{ color: '#94a3b8', fontSize: '0.8rem' }}>({match.venueAddress})</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <div style={{ flex: 1 }}>
+              <p style={{ fontWeight: 800, fontSize: '1.1rem', color: '#1e293b', marginBottom: '0.3rem' }}>{match.localTeam}</p>
+              {match.localColor && (
+                <span style={{ 
+                  fontSize: '0.7rem', 
+                  background: '#f1f5f9', 
+                  padding: '0.2rem 0.6rem', 
+                  borderRadius: '6px',
+                  color: '#475569',
+                  fontWeight: 700,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}>
+                  <span style={{ fontSize: '0.8rem' }}>👕</span> {match.localColor}
+                </span>
               )}
-              <button 
-                onClick={() => setIsEditingAddress(true)} 
-                title="Editar ubicación"
-                style={{ border: 'none', background: 'none', cursor: 'pointer', padding: '4px', color: '#94a3b8' }}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                </svg>
-              </button>
-            </p>
-          )}
-        
-        <div style={{ marginBottom: '1rem', position: 'relative' }}>
-          {!showMapSelection ? (
-            <button 
-              onClick={() => setShowMapSelection(true)}
-              className="btn"
-              style={{ 
-                fontSize: '0.8rem', 
-                padding: '0.4rem 0.8rem', 
-                background: '#f1f5f9', 
-                color: '#475569',
-                border: '1px solid #e2e8f0',
-                width: '100%',
-                marginTop: '0.25rem',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.5rem'
-              }}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10"></circle>
-                <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon>
-              </svg>
-              Cómo llegar
-            </button>
-          ) : (
-            <div style={{ 
-              background: '#fff', 
-              border: '1px solid #e2e8f0', 
-              borderRadius: '8px', 
-              padding: '0.5rem',
-              marginTop: '0.25rem',
-              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-            }}>
-              <p style={{ fontSize: '0.8rem', textAlign: 'center', marginBottom: '0.5rem', fontWeight: 500, color: '#64748b' }}>Elige navegador:</p>
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <a 
-                  href={`waze://?q=${encodeURIComponent(match.venue)}&navigate=yes`}
-                  onClick={(e) => {
-                    const webUrl = `https://www.waze.com/ul?q=${encodeURIComponent(match.venue)}&navigate=yes`;
-                    if (!navigator.userAgent.match(/(iPhone|iPod|iPad|Android)/)) {
-                      window.open(webUrl, '_blank');
-                      e.preventDefault();
-                    } else {
-                      setTimeout(() => { window.location.href = webUrl; }, 500);
-                    }
-                  }}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn"
-                  style={{ 
-                    flex: 1,
-                    fontSize: '0.8rem', 
-                    padding: '0.4rem', 
-                    background: '#e0f2fe', 
-                    color: '#0369a1',
-                    border: '1px solid #bae6fd',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: '0.25rem'
-                  }}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                    <circle cx="12" cy="10" r="3"></circle>
-                  </svg>
-                  Waze
-                </a>
-                <a 
-                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(match.venue)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn"
-                  style={{ 
-                    flex: 1,
-                    fontSize: '0.8rem', 
-                    padding: '0.4rem', 
-                    background: '#dcfce7', 
-                    color: '#15803d',
-                    border: '1px solid #86efac',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: '0.25rem'
-                  }}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                    <circle cx="12" cy="10" r="3"></circle>
-                  </svg>
-                  Maps
-                </a>
-              </div>
-              <button 
-                onClick={() => setShowMapSelection(false)}
-                style={{
-                  width: '100%',
-                  marginTop: '0.5rem',
-                  background: 'none',
-                  border: 'none',
-                  fontSize: '0.75rem',
-                  color: '#94a3b8',
-                  cursor: 'pointer'
-                }}
-              >
-                Cancelar
-              </button>
             </div>
-          )}
+            <div style={{ fontSize: '0.7rem', fontWeight: 900, color: '#cbd5e1' }}>VS</div>
+            <div style={{ flex: 1, textAlign: 'right' }}>
+              <p style={{ fontWeight: 800, fontSize: '1.1rem', color: '#1e293b', marginBottom: '0.3rem' }}>{match.visitorTeam}</p>
+              {match.visitorColor && (
+                <span style={{ 
+                  fontSize: '0.7rem', 
+                  background: '#f1f5f9', 
+                  padding: '0.2rem 0.6rem', 
+                  borderRadius: '6px',
+                  color: '#475569',
+                  fontWeight: 700,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  flexDirection: 'row-reverse'
+                }}>
+                  <span style={{ fontSize: '0.8rem' }}>👕</span> {match.visitorColor}
+                </span>
+              )}
+            </div>
+          </div>
         </div>
 
-        <p style={{ fontSize: '0.875rem', marginBottom: '1rem', color: '#64748b' }}>
-          <span style={{ fontWeight: 600, color: '#1e293b' }}>👤 Tu función:</span> {match.role}
-        </p>
-        
-        {partners.length > 0 && (
+        {/* Info adicional (Categoría, Sede, Rol) */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.5rem' }}>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '0.75rem', background: 'var(--primary-light)', color: 'var(--primary)', padding: '0.25rem 0.75rem', borderRadius: '8px', fontWeight: 700 }}>
+              {match.category.name}
+            </span>
+            <span style={{ fontSize: '0.75rem', background: '#f8fafc', color: '#64748b', padding: '0.25rem 0.75rem', borderRadius: '8px', fontWeight: 700, border: '1px solid #f1f5f9' }}>
+              {match.division.name}
+            </span>
+          </div>
+
           <div style={{ 
-            marginTop: '1rem', 
-            padding: '1rem', 
+            fontSize: '0.85rem', 
+            color: '#475569', 
             background: '#f8fafc', 
-            borderRadius: '12px', 
-            border: '1px solid #f1f5f9' 
+            padding: '0.85rem', 
+            borderRadius: '12px',
+            border: '1px solid #f1f5f9'
           }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', marginBottom: '0.6rem' }}>
+              <span style={{ fontSize: '1.1rem' }}>📍</span>
+              <div style={{ flex: 1 }}>
+                <p style={{ fontWeight: 700, fontSize: '0.85rem', color: '#1e293b', lineHeight: 1.3 }}>{match.venue}</p>
+                {match.venueAddress && match.venueAddress !== match.venue && (
+                  <p style={{ color: '#94a3b8', fontSize: '0.75rem', marginTop: '0.1rem' }}>{match.venueAddress}</p>
+                )}
+              </div>
+              <button 
+                onClick={() => setIsEditingAddress(true)} 
+                style={{ border: 'none', background: 'none', cursor: 'pointer', padding: '4px', color: '#cbd5e1' }}
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+              </button>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ fontSize: '1.1rem' }}>👤</span>
+              <p style={{ fontWeight: 600 }}>{match.role}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Equipo Arbitral */}
+        {partners.length > 0 && (
+          <div style={{ marginBottom: '1.5rem' }}>
             <p style={{ 
               fontSize: '0.7rem', 
               fontWeight: 800, 
@@ -574,106 +436,108 @@ export default function MatchCard({ match, onPaymentUpdate }: MatchCardProps) {
               alignItems: 'center',
               gap: '6px'
             }}>
-              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                <circle cx="9" cy="7" r="4"></circle>
-                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-              </svg>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
               Equipo Arbitral
             </p>
-            {partners.map((partner, idx) => (
-              <div key={idx} style={{ fontSize: '0.85rem', marginBottom: idx !== partners.length - 1 ? '0.6rem' : 0 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ color: '#64748b', fontSize: '0.75rem', fontWeight: 600 }}>{partner.role}</span>
-                  <span style={{ fontWeight: 700, color: '#334155' }}>{partner.name}</span>
-                </div>
-                {partner.phone && (
-                  <div style={{ display: 'flex', alignItems: 'center', marginTop: '0.2rem', justifyContent: 'flex-end' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              {partners.map((partner, idx) => (
+                <div key={idx} style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'center',
+                  padding: '0.6rem 0.85rem',
+                  background: '#ffffff',
+                  borderRadius: '10px',
+                  border: '1px solid #f1f5f9'
+                }}>
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <span style={{ color: '#94a3b8', fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase' }}>{partner.role}</span>
+                    <span style={{ fontWeight: 700, color: '#334155', fontSize: '0.85rem' }}>{partner.name}</span>
+                  </div>
+                  {partner.phone && (
                     <a 
                       href={`tel:${partner.phone}`} 
                       style={{ 
+                        background: '#eff6ff', 
                         color: 'var(--primary)', 
-                        fontWeight: 700, 
-                        fontSize: '0.75rem',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        background: '#eff6ff',
-                        padding: '0.1rem 0.5rem',
-                        borderRadius: '6px'
+                        padding: '0.4rem', 
+                        borderRadius: '8px',
+                        display: 'flex'
                       }}
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
-                      </svg>
-                      {partner.phone}
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
                     </a>
-                  </div>
-                )}
-              </div>
-            ))}
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
         )}
-      </div>
 
-      <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '1.25rem', marginTop: '1.25rem' }}>
-        {showPaymentForm ? (
-          <form onSubmit={handleUpdatePayment}>
-            <div className="grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label>Partido (€)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={matchPayment}
-                  onChange={(e) => setMatchPayment(e.target.value)}
-                  placeholder="0.00"
-                  style={{ padding: '0.5rem' }}
-                />
-              </div>
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label>Gasolina (€)</label>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
+        {/* Footer con Pago */}
+        <div style={{ 
+          marginTop: '1.5rem', 
+          paddingTop: '1.25rem', 
+          borderTop: '1px solid #f1f5f9',
+          background: showPaymentForm ? '#f8fafc' : 'transparent',
+          margin: '0 -1.25rem -1.25rem -1.25rem',
+          padding: '1.25rem',
+          borderRadius: '0 0 12px 12px'
+        }}>
+          {showPaymentForm ? (
+            <form onSubmit={handleUpdatePayment}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label style={{ fontSize: '0.7rem' }}>Honorarios (€)</label>
                   <input
                     type="number"
                     step="0.01"
-                    value={gasPayment}
-                    onChange={(e) => setGasPayment(e.target.value)}
-                    placeholder="0.00"
-                    style={{ padding: '0.5rem' }}
+                    value={matchPayment}
+                    onChange={(e) => setMatchPayment(e.target.value)}
+                    style={{ padding: '0.6rem', fontSize: '0.9rem' }}
                   />
-                  <button 
-                    type="button" 
-                    onClick={handleAutoCalculateGas}
-                    className="btn"
-                    disabled={calculatingGas}
-                    title="Calcular automáticamente"
-                    style={{ padding: '0.5rem', background: 'var(--primary-light)', color: 'var(--primary)' }}
-                  >
-                    {calculatingGas ? '...' : '⚡'}
-                  </button>
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label style={{ fontSize: '0.7rem' }}>Gasolina (€)</label>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={gasPayment}
+                      onChange={(e) => setGasPayment(e.target.value)}
+                      style={{ padding: '0.6rem', fontSize: '0.9rem' }}
+                    />
+                    <button 
+                      type="button" 
+                      onClick={handleAutoCalculateGas}
+                      className="btn"
+                      disabled={calculatingGas}
+                      style={{ padding: '0.6rem', background: '#fff', border: '1px solid #e2e8f0' }}
+                    >
+                      {calculatingGas ? '...' : '⚡'}
+                    </button>
+                  </div>
                 </div>
               </div>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button type="button" onClick={() => setShowPaymentForm(false)} className="btn" style={{ flex: 1, background: '#fff', border: '1px solid #e2e8f0', fontSize: '0.85rem' }}>Cancelar</button>
+                <button type="submit" className="btn btn-primary" style={{ flex: 1, fontSize: '0.85rem' }} disabled={loading}>Guardar</button>
+              </div>
+            </form>
+          ) : (
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <p style={{ fontSize: '0.65rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '0.1rem' }}>Total Liquidación</p>
+                <p style={{ fontSize: '1.4rem', fontWeight: 900, color: totalPayment > 0 ? 'var(--success)' : '#cbd5e1', letterSpacing: '-0.02em' }}>
+                  {totalPayment.toFixed(2)}€
+                </p>
+              </div>
+              <button onClick={() => setShowPaymentForm(true)} className="btn btn-secondary" style={{ padding: '0.6rem 1rem', fontSize: '0.85rem' }}>
+                Editar Pago
+              </button>
             </div>
-            <div className="flex" style={{ justifyContent: 'flex-end' }}>
-              <button type="button" onClick={() => setShowPaymentForm(false)} className="btn" style={{ background: '#f1f5f9' }}>Cancelar</button>
-              <button type="submit" className="btn btn-primary" disabled={loading}>Guardar</button>
-            </div>
-          </form>
-        ) : (
-          <div className="flex" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <p style={{ fontSize: '0.75rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '0.1rem' }}>Total Cobro</p>
-              <p style={{ fontSize: '1.25rem', fontWeight: 900, color: totalPayment > 0 ? 'var(--success)' : '#cbd5e1' }}>
-                {totalPayment.toFixed(2)}€
-              </p>
-            </div>
-            <button onClick={() => setShowPaymentForm(true)} className="btn btn-secondary" style={{ padding: '0.5rem 1rem' }}>
-              Editar Pago
-            </button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );
