@@ -1,18 +1,18 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-// No external date utility needed for these calculations
+import { getAvailableSeasons, getCurrentSeasonLabel, isDateInSeason } from '@/lib/season';
 
-
-export async function GET() {
+export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ message: 'No autorizado' }, { status: 401 });
 
   const userId = (session.user as { id: string }).id;
-  
+  const requestedSeason = request.nextUrl.searchParams.get('season');
+
   try {
-    const matches = await prisma.match.findMany({
+    const allMatches = await prisma.match.findMany({
       where: { userId, deletedAt: null },
       include: {
         payment: true,
@@ -21,6 +21,11 @@ export async function GET() {
       },
       orderBy: { date: 'desc' },
     });
+
+    const currentSeason = getCurrentSeasonLabel();
+    const availableSeasons = getAvailableSeasons(allMatches.map(m => m.date));
+    const season = requestedSeason && availableSeasons.includes(requestedSeason) ? requestedSeason : currentSeason;
+    const matches = allMatches.filter(m => isDateInSeason(m.date, season));
 
     const categories: Record<string, number> = {};
     const divisions: Record<string, number> = {};
@@ -86,6 +91,9 @@ export async function GET() {
       detailedCategories,
       weekly: Object.values(weeklyGroups).sort((a, b) => b.period.localeCompare(a.period)),
       monthly: Object.values(monthlyGroups).sort((a, b) => b.period.localeCompare(a.period)),
+      currentSeason,
+      season,
+      availableSeasons,
     });
   } catch (error) {
     console.error('Error generating statistics:', error);

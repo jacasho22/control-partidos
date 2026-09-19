@@ -1,13 +1,15 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { getAvailableSeasons, getCurrentSeasonLabel, isDateInSeason } from '@/lib/season';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ message: 'No autorizado' }, { status: 401 });
 
   const userId = (session.user as { id: string }).id;
+  const requestedSeason = request.nextUrl.searchParams.get('season');
 
   try {
     const allMatches = await prisma.match.findMany({
@@ -29,6 +31,10 @@ export async function GET() {
     const CURRENT_VERSION = '1.2.0';
     const showUpdateModal = user?.lastVersionSeen !== CURRENT_VERSION;
 
+    const currentSeason = getCurrentSeasonLabel();
+    const availableSeasons = getAvailableSeasons(allMatches.map(m => m.date));
+    const season = requestedSeason && availableSeasons.includes(requestedSeason) ? requestedSeason : currentSeason;
+
     if (allMatches.length === 0) {
       return NextResponse.json({
         nextMatch: null,
@@ -37,8 +43,13 @@ export async function GET() {
         totalEarnings: 0,
         topCategory: '-',
         totalMatches: 0,
+        currentSeason,
+        season,
+        availableSeasons,
       });
     }
+
+    const seasonMatches = allMatches.filter(m => isDateInSeason(m.date, season));
 
     const now = new Date();
     
@@ -95,13 +106,13 @@ export async function GET() {
       .filter(m => new Date(m.date) >= lastFriday)
       .reduce((sum, m) => sum + (m.payment?.matchPayment || 0) + (m.payment?.gasPayment || 0), 0);
     
-    // Calculate total season earnings
-    const totalEarnings = allMatches
+    // Calculate total season earnings (filtered by selected season)
+    const totalEarnings = seasonMatches
       .reduce((sum, m) => sum + (m.payment?.matchPayment || 0) + (m.payment?.gasPayment || 0), 0);
 
-    // Calculate top category
+    // Calculate top category (within selected season)
     const categories: Record<string, number> = {};
-    allMatches.forEach(m => {
+    seasonMatches.forEach(m => {
       categories[m.category.name] = (categories[m.category.name] || 0) + 1;
     });
 
@@ -120,9 +131,12 @@ export async function GET() {
       weeklyEarnings,
       totalEarnings,
       topCategory,
-      totalMatches: allMatches.length,
+      totalMatches: seasonMatches.length,
       showUpdateModal,
-      currentVersion: CURRENT_VERSION
+      currentVersion: CURRENT_VERSION,
+      currentSeason,
+      season,
+      availableSeasons,
     });
   } catch (error) {
     console.error('Error fetching dashboard data:', error);

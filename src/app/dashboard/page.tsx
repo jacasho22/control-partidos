@@ -30,6 +30,9 @@ interface DashboardData {
   totalMatches: number;
   showUpdateModal: boolean;
   currentVersion: string;
+  currentSeason: string;
+  season: string;
+  availableSeasons: string[];
 }
 
 function DashboardContent() {
@@ -38,16 +41,19 @@ function DashboardContent() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [season, setSeason] = useState<string | null>(null);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/login');
     } else if (status === 'authenticated') {
-      fetch('/api/dashboard')
+      const url = season ? `/api/dashboard?season=${encodeURIComponent(season)}` : '/api/dashboard';
+      fetch(url)
         .then(res => res.json())
         .then(d => {
           setData(d);
           setLoading(false);
+          if (!season) setSeason(d.season);
           if (d.showUpdateModal) setShowModal(true);
         })
         .catch(err => {
@@ -57,7 +63,7 @@ function DashboardContent() {
     } else if (status === 'loading') {
       // Do nothing while loading session
     }
-  }, [status, router]);
+  }, [status, router, season]);
 
   if (status === 'loading' || loading) return <div className="text-center mt-4">Cargando...</div>;
   if (!session || !data) return null;
@@ -100,9 +106,20 @@ function DashboardContent() {
 
         <div className="card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
           <div>
-            <h3 style={{ fontSize: '1rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '1.25rem' }}>
-              Ingresos Temporada
-            </h3>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <h3 style={{ fontSize: '1rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0 }}>
+                Ingresos Temporada
+              </h3>
+              <select
+                value={data.season}
+                onChange={(e) => setSeason(e.target.value)}
+                style={{ fontSize: '0.8rem', padding: '0.2rem 0.5rem', borderRadius: '6px', border: '1px solid var(--border)' }}
+              >
+                {data.availableSeasons.map(s => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+            </div>
             <div style={{ fontSize: '2.75rem', fontWeight: 900, marginBottom: '0.5rem', color: 'var(--primary)', letterSpacing: '-0.02em' }}>
               {(data.totalEarnings || 0).toFixed(2)}€
             </div>

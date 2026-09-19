@@ -1,4 +1,4 @@
-// @ts-ignore
+// @ts-expect-error - no type definitions for this internal entry point
 import pdf from 'pdf-parse/lib/pdf-parse.js';
 
 export interface MatchData {
@@ -220,7 +220,7 @@ export function extractEquipmentColors(block: string): { localColor?: string; vi
 
   const extractFromZone = (zoneText: string) => {
     // Limpiar el texto de la zona
-    let text = zoneText.replace(/^CAMISETAPANTAL[OÓ]N/i, '').trim();
+    const text = zoneText.replace(/^CAMISETAPANTAL[OÓ]N/i, '').trim();
     const lines = text.split('\n').map((l: string) => l.trim()).filter((l: string) => l.length > 0);
     
     let shirt = '';

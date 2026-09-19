@@ -21,6 +21,9 @@ interface StatisticsData {
   detailedCategories: Record<string, number>;
   weekly: StatItem[];
   monthly: StatItem[];
+  currentSeason: string;
+  season: string;
+  availableSeasons: string[];
 }
 
 export default function StatisticsPage() {
@@ -28,6 +31,7 @@ export default function StatisticsPage() {
   const router = useRouter();
   const [stats, setStats] = useState<StatisticsData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [season, setSeason] = useState<string | null>(null);
 
   const formatWeek = (dateStr: string) => {
     const d = new Date(dateStr);
@@ -44,14 +48,16 @@ export default function StatisticsPage() {
     if (status === 'unauthenticated') {
       router.push('/login');
     } else if (status === 'authenticated') {
-      fetch('/api/statistics')
+      const url = season ? `/api/statistics?season=${encodeURIComponent(season)}` : '/api/statistics';
+      fetch(url)
         .then(res => res.json())
         .then(data => {
           setStats(data);
           setLoading(false);
+          if (!season) setSeason(data.season);
         });
     }
-  }, [status, router]);
+  }, [status, router, season]);
 
   if (loading || !stats) return <div className="text-center mt-4">Cargando estadísticas...</div>;
 
@@ -91,8 +97,19 @@ export default function StatisticsPage() {
 
   return (
     <div style={{ paddingBottom: '4rem' }}>
-      <h1 className="mb-4">Estadísticas</h1>
-      
+      <div className="flex" style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+        <h1 style={{ margin: 0 }}>Estadísticas</h1>
+        <select
+          value={stats.season}
+          onChange={(e) => setSeason(e.target.value)}
+          style={{ fontSize: '0.9rem', padding: '0.4rem 0.75rem', borderRadius: '8px', border: '1px solid var(--border)' }}
+        >
+          {stats.availableSeasons.map(s => (
+            <option key={s} value={s}>Temporada {s}</option>
+          ))}
+        </select>
+      </div>
+
       <div className="grid">
         <div className="card">
           <h3>Ingresos Totales</h3>
@@ -110,7 +127,7 @@ export default function StatisticsPage() {
           <p style={{ fontSize: '2.5rem', fontWeight: 'bold', margin: '1rem 0' }}>
             {Object.values(stats.categories).reduce((a, b) => a + b, 0)}
           </p>
-          <p className="text-muted">Temporada 2024/2025</p>
+          <p className="text-muted">Temporada {stats.season}</p>
         </div>
       </div>
 

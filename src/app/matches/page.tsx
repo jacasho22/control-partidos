@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import MatchCard from '@/components/MatchCard';
+import { getAvailableSeasons, getCurrentSeasonLabel, isDateInSeason } from '@/lib/season';
 
 interface Partner {
   role: string;
@@ -38,6 +39,7 @@ function MatchesContent() {
   const [filteredMatches, setFilteredMatches] = useState<Match[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
+  const [season, setSeason] = useState<string>(getCurrentSeasonLabel());
 
   const fetchMatches = async () => {
     try {
@@ -63,19 +65,19 @@ function MatchesContent() {
   }, [status, router]);
 
   useEffect(() => {
-    if (searchTerm === '') {
-      setFilteredMatches(matches);
-    } else {
-      const lowerTerm = searchTerm.toLowerCase();
-      const filtered = matches.filter(match => 
+    const lowerTerm = searchTerm.toLowerCase();
+    const filtered = matches.filter(match =>
+      isDateInSeason(match.date, season) &&
+      (searchTerm === '' ||
         match.localTeam.toLowerCase().includes(lowerTerm) ||
         match.visitorTeam.toLowerCase().includes(lowerTerm) ||
         match.category.name.toLowerCase().includes(lowerTerm) ||
-        match.matchNumber.includes(lowerTerm)
-      );
-      setFilteredMatches(filtered);
-    }
-  }, [searchTerm, matches]);
+        match.matchNumber.includes(lowerTerm))
+    );
+    setFilteredMatches(filtered);
+  }, [searchTerm, season, matches]);
+
+  const availableSeasons = getAvailableSeasons(matches.map(m => m.date));
 
   if (loading) return <div className="text-center mt-4">Cargando partidos...</div>;
 
@@ -102,14 +104,25 @@ function MatchesContent() {
     <div style={{ paddingBottom: '6rem' }}>
       <div className="flex" style={{ justifyContent: 'space-between', marginBottom: '2.5rem', alignItems: 'center' }}>
         <h1 style={{ margin: 0 }}>Mis Partidos</h1>
-        <button className="btn btn-primary" onClick={() => router.push('/upload')}>
+        <div className="flex" style={{ gap: '0.75rem', alignItems: 'center' }}>
+          <select
+            value={season}
+            onChange={(e) => setSeason(e.target.value)}
+            style={{ fontSize: '0.9rem', padding: '0.4rem 0.75rem', borderRadius: '8px', border: '1px solid var(--border)' }}
+          >
+            {availableSeasons.map(s => (
+              <option key={s} value={s}>Temporada {s}</option>
+            ))}
+          </select>
+          <button className="btn btn-primary" onClick={() => router.push('/upload')}>
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
             <polyline points="17 8 12 3 7 8"></polyline>
             <line x1="12" y1="3" x2="12" y2="15"></line>
           </svg>
-          Subir PDF
-        </button>
+            Subir PDF
+          </button>
+        </div>
       </div>
 
       <div className="card" style={{ marginBottom: '2.5rem', padding: '0.75rem' }}>

@@ -65,7 +65,7 @@ export default function WhatsNewModal({ version, onClose }: WhatsNewModalProps) 
               <strong>🎨 Equipaciones Automáticas:</strong> Los colores de las camisetas se extraen directamente del PDF y se muestran en tus tarjetas de partido.
             </li>
             <li style={{ marginBottom: '0.8rem' }}>
-              <strong>🧹 Limpieza de Texto:</strong> Hemos corregido el parser para evitar palabras juntas como "ANOTADORJUAN" o "TELÉFONOPOBLACIÓN".
+              <strong>🧹 Limpieza de Texto:</strong> Hemos corregido el parser para evitar palabras juntas como &quot;ANOTADORJUAN&quot; o &quot;TELÉFONOPOBLACIÓN&quot;.
             </li>
             <li style={{ marginBottom: '0.8rem' }}>
               <strong>📍 GPS y Ubicación:</strong> Edita las direcciones manualmente y abre la ruta directamente en <strong>Google Maps</strong> o <strong>Waze</strong>.
