@@ -220,7 +220,7 @@ export function extractEquipmentColors(block: string): { localColor?: string; vi
 
   const extractFromZone = (zoneText: string) => {
     // Limpiar el texto de la zona
-    const text = zoneText.replace(/^CAMISETAPANTAL[OÓ]N/i, '').trim();
+    const text = zoneText.replace(/^\s*CAMISETA\s+PANTAL[OÓ]N/i, '').trim();
     const lines = text.split('\n').map((l: string) => l.trim()).filter((l: string) => l.length > 0);
     
     let shirt = '';
@@ -235,36 +235,39 @@ export function extractEquipmentColors(block: string): { localColor?: string; vi
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i].toUpperCase();
       
-      // Si la línea empieza con '/', es el pantalón
+      // Si la línea empieza con '/', es el pantalón (solo el primer color tras la barra)
       if (line.startsWith('/')) {
-        pants = line.substring(1).trim();
+        if (!pants) pants = line.substring(1).split('/')[0].trim();
         continue;
       }
 
-      // Buscar colores base en la línea
       const regex = new RegExp(`\\b(${colorPattern})\\b`, 'gi');
-      const matches = line.match(regex);
-      
-      if (matches) {
-        // Si hay una barra en la línea, podría ser COLOR/COLOR
-        if (line.includes('/')) {
-          const parts = line.split('/');
-          shirt = parts[0].trim();
-          pants = parts[1].trim();
-        } else {
-          // Si no hay barra, la primera coincidencia es la camiseta
-          if (!shirt) shirt = matches[0];
+
+      // Si hay una barra en medio de la línea, la parte antes es camiseta, la de después pantalón
+      if (line.includes('/')) {
+        const [beforePart, afterPart] = line.split('/');
+        if (!shirt) {
+          const shirtMatch = beforePart.match(regex);
+          if (shirtMatch) shirt = shirtMatch[0];
         }
+        if (!pants && afterPart) pants = afterPart.trim();
+        continue;
+      }
+
+      // Sin barra, la primera coincidencia es la camiseta
+      if (!shirt) {
+        const matches = line.match(regex);
+        if (matches) shirt = matches[0];
       }
     }
-    
-    if (shirt && pants) return `${shirt} / ${pants}`;
+
+    if (shirt && pants) return `${shirt}/${pants}`;
     if (shirt) return shirt;
     return undefined;
   };
 
-  const localMarker = "LOCALCAMISETAPANTALÓN";
-  const visitorMarker = "VISITANTECAMISETAPANTALÓN";
+  const localMarker = "LOCAL CAMISETA PANTALÓN";
+  const visitorMarker = "VISITANTE CAMISETA PANTALÓN";
   
   const localStart = cleanBlock.indexOf(localMarker);
   const visitorStart = cleanBlock.indexOf(visitorMarker);
