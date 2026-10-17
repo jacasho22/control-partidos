@@ -212,57 +212,54 @@ export function extractEquipmentColors(block: string): { localColor?: string; vi
   const cleanBlock = block.replace(/\r/g, '');
 
   const BASE_COLORS = [
-    'BLANCO', 'AZUL', 'ROJO', 'VERDE', 'AMARILLO', 'NEGRO', 'NARANJA', 
-    'ROSA', 'MORADO', 'GRIS', 'OSCURO', 'CLARO', 'CELESTE', 'GRANA', 'VIOLETA'
+    'BLANCO', 'AZUL', 'ROJO', 'VERDE', 'AMARILLO', 'NEGRO', 'NARANJA',
+    'ROSA', 'MORADO', 'GRIS', 'CELESTE', 'GRANA', 'VIOLETA'
   ];
+  // Los únicos modificadores de dos palabras reales son CLARO/OSCURO (ej. "AZUL OSCURO").
+  // No se permite cualquier color como segunda palabra: eso haría que la regex se comiera
+  // por error el color de la columna PANTALÓN de al lado (ej. "ROJO BLANCO" en
+  // "BLANCO/ROJO BLANCO/ROJO", donde "BLANCO" pertenece a la siguiente columna).
+  const MODIFIERS = ['CLARO', 'OSCURO'];
 
-  const colorPattern = `(?:${BASE_COLORS.join('|')})(?:\\s+(?:${BASE_COLORS.join('|')}))?`;
+  const colorPattern = `(?:${BASE_COLORS.join('|')})(?:\\s+(?:${MODIFIERS.join('|')}))?`;
+  // Color compuesto: "AZUL OSCURO" o "NEGRO/BLANCO" (dos tonos), sin espacios junto a la barra
+  // para no fundirse con la siguiente columna (pantalón) que viene separada por espacio.
+  const compoundPattern = `${colorPattern}(?:\\/${colorPattern})?`;
+  const compoundRegex = new RegExp(`\\b(${compoundPattern})\\b`, 'i');
 
   const extractFromZone = (zoneText: string) => {
     // Limpiar el texto de la zona
     const text = zoneText.replace(/^\s*CAMISETA\s+PANTAL[OÓ]N/i, '').trim();
     const lines = text.split('\n').map((l: string) => l.trim()).filter((l: string) => l.length > 0);
-    
-    let shirt = '';
-    let pants = '';
 
-    // En el PDF, los colores suelen venir debajo del nombre del equipo
-    // LOCAL CAMISETA PANTALÓN
-    // NOMBRE EQUIPO
-    // COLOR_CAMISETA
-    // /COLOR_PANTALON
-    
+    // Solo nos interesa la CAMISETA (primera columna). El color puede venir:
+    // - en la misma línea del equipo: "EQUIPO AZUL OSCURO AZUL OSCURO" (repetido por la 2ª columna)
+    // - en la misma línea con dos tonos: "EQUIPO BLANCO/ROJO BLANCO/ROJO"
+    // - en dos líneas (base + accesorio): "EQUIPO AZUL OSCURO" seguido de "/AMARILLO"
+    // Algunos equipos no tienen color en texto (se representa como icono/imagen en el PDF),
+    // en ese caso no hay nada que extraer y se devuelve undefined.
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i].toUpperCase();
-      
-      // Si la línea empieza con '/', es el pantalón (solo el primer color tras la barra)
-      if (line.startsWith('/')) {
-        if (!pants) pants = line.substring(1).split('/')[0].trim();
-        continue;
-      }
+      if (line.startsWith('/')) continue; // línea de accesorio huérfana, ya se habría consumido
 
-      const regex = new RegExp(`\\b(${colorPattern})\\b`, 'gi');
+      const match = line.match(compoundRegex);
+      if (!match) continue;
 
-      // Si hay una barra en medio de la línea, la parte antes es camiseta, la de después pantalón
-      if (line.includes('/')) {
-        const [beforePart, afterPart] = line.split('/');
-        if (!shirt) {
-          const shirtMatch = beforePart.match(regex);
-          if (shirtMatch) shirt = shirtMatch[0];
+      let shirt = match[1];
+
+      // Si el color encontrado no trae ya su propio tono (sin '/'), comprobar si la línea
+      // siguiente es un accesorio tipo "/AMARILLO" que completa el color de la camiseta.
+      if (!shirt.includes('/')) {
+        const nextLine = lines[i + 1]?.trim();
+        if (nextLine?.startsWith('/')) {
+          const accentMatch = nextLine.substring(1).toUpperCase().match(compoundRegex);
+          if (accentMatch) shirt = `${shirt}/${accentMatch[1]}`;
         }
-        if (!pants && afterPart) pants = afterPart.trim();
-        continue;
       }
 
-      // Sin barra, la primera coincidencia es la camiseta
-      if (!shirt) {
-        const matches = line.match(regex);
-        if (matches) shirt = matches[0];
-      }
+      return shirt;
     }
 
-    if (shirt && pants) return `${shirt}/${pants}`;
-    if (shirt) return shirt;
     return undefined;
   };
 
