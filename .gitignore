@@ -34,3 +34,7 @@ Thumbs.db
 # Test coverage
 coverage
 .vercel
+
+# PDFs reales de designaciones usados como fixtures de test local (contienen
+# datos personales de otros árbitros: nombres y teléfonos). No subir al repo.
+src/lib/__tests__/fixtures

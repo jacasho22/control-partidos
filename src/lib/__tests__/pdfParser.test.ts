@@ -92,3 +92,31 @@ CLUB BASQUET GIL COMES VINAROS ROSA ROSA
     expect(colors.visitorColor).toBe('ROSA');
   });
 });
+
+// pdf-parse no siempre separa las columnas con espacios: a veces las concatena
+// directamente ("LOCALCAMISETAPANTALÓN", "CB CASTELLONNEGRO/NEGRONEGRO/NEGRO"),
+// pegando incluso el nombre del equipo al color. Estos son los textos reales
+// extraídos de designaciones FBCV reales (no inventados a mano), que rompían el
+// matching basado en límites de palabra (\b).
+describe('pdfParser - Color Extraction (texto real de pdf-parse sin espacios)', () => {
+  it('extracts a dual-tone color glued directly to the team name, duplicated for both columns', () => {
+    const block = 'DATOS EQUIPOS\nLOCALCAMISETAPANTALÓN\nCB CASTELLONNEGRO/NEGRONEGRO/NEGRO\nVISITANTECAMISETAPANTALÓN\nCAIXA POPULAR C.B.C MANISES\nEQUIPO ARBITRAL\n';
+    const colors = extractEquipmentColors(block);
+    expect(colors.localColor).toBe('NEGRO/NEGRO');
+    expect(colors.visitorColor).toBeUndefined();
+  });
+
+  it('extracts a dual-tone color with different hues glued to the team name', () => {
+    const block = 'DATOS EQUIPOS\nLOCALCAMISETAPANTALÓN\nIDA VALENCIA UIXÓ BÀSQUET\nVISITANTECAMISETAPANTALÓN\nBASQUET CLUB PEÑISCOLA FACSANEGRO/BLANCONEGRO/BLANCO\nEQUIPO ARBITRAL\n';
+    const colors = extractEquipmentColors(block);
+    expect(colors.localColor).toBeUndefined();
+    expect(colors.visitorColor).toBe('NEGRO/BLANCO');
+  });
+
+  it('combines a base color glued to the team name with an accent line on a different line', () => {
+    const block = 'DATOS EQUIPOS\nLOCALCAMISETAPANTALÓN\nCB TORREBLANCAAZUL OSCURO\n/AMARILLO\nAZUL OSCURO\n/AZUL OSCURO\nVISITANTECAMISETAPANTALÓN\nCLUB BASQUET GIL COMES VINAROSROSAROSA\nEQUIPO ARBITRAL\n';
+    const colors = extractEquipmentColors(block);
+    expect(colors.localColor).toBe('AZUL OSCURO/AMARILLO');
+    expect(colors.visitorColor).toBe('ROSA');
+  });
+});

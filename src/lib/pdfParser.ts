@@ -1,5 +1,6 @@
 // @ts-expect-error - no type definitions for this internal entry point
 import pdf from 'pdf-parse/lib/pdf-parse.js';
+import { extractSwatchColors } from './pdfSwatchColors';
 
 export interface MatchData {
   id: string;
@@ -32,6 +33,15 @@ export async function parseDesignationPdf(buffer: Buffer): Promise<MatchData[]> 
   const data = await pdf(buffer);
   const text = data.text;
   const matches: MatchData[] = [];
+
+  // Algunos equipos no escriben el color en texto, solo un cuadrado de color en el PDF.
+  // Si esto falla por cualquier motivo, seguimos sin colores de swatch (no bloquea el parseo).
+  let swatchColorsByMatch: Record<string, { localColor?: string; visitorColor?: string }> = {};
+  try {
+    swatchColorsByMatch = await extractSwatchColors(buffer);
+  } catch (error) {
+    console.error('No se pudieron extraer colores por swatch:', error);
+  }
   
   // El PDF suele tener bloques que empiezan con el nombre de los equipos,
   // seguido de la fecha y luego "DATOS DEL PARTIDO [ID]"
@@ -120,8 +130,11 @@ export async function parseDesignationPdf(buffer: Buffer): Promise<MatchData[]> 
       city = venueMatch[3].trim();
     }
 
-    // Extraer Colores
+    // Extraer Colores (texto primero; si falta, caer al color dibujado como cuadrado)
     const colors = extractEquipmentColors(contentAfter);
+    const swatchColors = swatchColorsByMatch[matchId];
+    if (!colors.localColor && swatchColors?.localColor) colors.localColor = swatchColors.localColor;
+    if (!colors.visitorColor && swatchColors?.visitorColor) colors.visitorColor = swatchColors.visitorColor;
 
     // Extraer Compañeros (EQUIPO ARBITRAL)
     const partners: PartnerData[] = [];
@@ -226,6 +239,36 @@ export function extractEquipmentColors(block: string): { localColor?: string; vi
   // para no fundirse con la siguiente columna (pantalón) que viene separada por espacio.
   const compoundPattern = `${colorPattern}(?:\\/${colorPattern})?`;
   const compoundRegex = new RegExp(`\\b(${compoundPattern})\\b`, 'i');
+  // pdf-parse a veces pega el nombre del equipo directamente al color sin ningún
+  // separador ("CB CASTELLONNEGRO/NEGRONEGRO/NEGRO"), lo que rompe el \b de arriba:
+  // no hay transición letra/no-letra antes del color real, pero sí puede haberla
+  // más adelante por casualidad (p.ej. al final de la cadena), haciendo que el
+  // regex con \b encuentre una coincidencia válida pero en la posición EQUIVOCADA
+  // (la columna pantalón en vez de la camiseta). Para cubrir el caso sin límites
+  // de palabra usamos dos heurísticas adicionales sin \b:
+  // 1) el color se repite pegado justo a sí mismo (columna camiseta + columna
+  //    pantalón con el mismo valor, ambas sin espacio): referencia inversa.
+  // 2) el color es lo último de la línea (nombre de equipo pegado a un color que
+  //    no se repite en esta línea, p.ej. porque el pantalón va en otra línea).
+  // Nos quedamos siempre con la coincidencia que empieza más a la izquierda entre
+  // las tres estrategias, porque la camiseta (lo que queremos) va siempre primero.
+  const duplicatedRegex = new RegExp(`(${compoundPattern})\\1`, 'i');
+  const endOfLineRegex = new RegExp(`(${compoundPattern})$`, 'i');
+
+  const matchColorOnLine = (line: string): string | undefined => {
+    const candidates = [
+      line.match(compoundRegex),
+      line.match(duplicatedRegex),
+      line.match(endOfLineRegex),
+    ].filter((m): m is RegExpMatchArray => m !== null && m.index !== undefined);
+
+    if (candidates.length === 0) return undefined;
+
+    const earliest = candidates.reduce((best, current) =>
+      (current.index as number) < (best.index as number) ? current : best
+    );
+    return earliest[1];
+  };
 
   const extractFromZone = (zoneText: string) => {
     // Limpiar el texto de la zona
@@ -242,10 +285,10 @@ export function extractEquipmentColors(block: string): { localColor?: string; vi
       const line = lines[i].toUpperCase();
       if (line.startsWith('/')) continue; // línea de accesorio huérfana, ya se habría consumido
 
-      const match = line.match(compoundRegex);
-      if (!match) continue;
+      const matchedColor = matchColorOnLine(line);
+      if (!matchedColor) continue;
 
-      let shirt = match[1];
+      let shirt = matchedColor;
 
       // Si el color encontrado no trae ya su propio tono (sin '/'), comprobar si la línea
       // siguiente es un accesorio tipo "/AMARILLO" que completa el color de la camiseta.
@@ -263,21 +306,25 @@ export function extractEquipmentColors(block: string): { localColor?: string; vi
     return undefined;
   };
 
-  const localMarker = "LOCAL CAMISETA PANTALÓN";
-  const visitorMarker = "VISITANTE CAMISETA PANTALÓN";
-  
-  const localStart = cleanBlock.indexOf(localMarker);
-  const visitorStart = cleanBlock.indexOf(visitorMarker);
+  // pdf-parse a veces concatena las columnas sin ningún espacio ("LOCALCAMISETAPANTALÓN")
+  // y otras veces las separa con espacios ("LOCAL CAMISETA PANTALÓN"), según el PDF.
+  const localMarkerRegex = /LOCAL\s*CAMISETA\s*PANTAL[OÓ]N/i;
+  const visitorMarkerRegex = /VISITANTE\s*CAMISETA\s*PANTAL[OÓ]N/i;
+
+  const localMatch = cleanBlock.match(localMarkerRegex);
+  const visitorMatch = cleanBlock.match(visitorMarkerRegex);
+  const localStart = localMatch?.index ?? -1;
+  const visitorStart = visitorMatch?.index ?? -1;
   const arbitralStart = cleanBlock.search(/EQUIPO ARBITRAL|ÁRBITROS/i);
 
-  if (localStart !== -1 && visitorStart !== -1) {
-    const localZone = cleanBlock.substring(localStart + localMarker.length, visitorStart);
+  if (localStart !== -1 && visitorStart !== -1 && localMatch) {
+    const localZone = cleanBlock.substring(localStart + localMatch[0].length, visitorStart);
     result.localColor = extractFromZone(localZone);
   }
 
-  if (visitorStart !== -1) {
+  if (visitorStart !== -1 && visitorMatch) {
     const visitorEnd = arbitralStart !== -1 ? arbitralStart : cleanBlock.length;
-    const visitorZone = cleanBlock.substring(visitorStart + visitorMarker.length, visitorEnd);
+    const visitorZone = cleanBlock.substring(visitorStart + visitorMatch[0].length, visitorEnd);
     result.visitorColor = extractFromZone(visitorZone);
   }
 
