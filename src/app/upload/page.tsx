@@ -33,9 +33,28 @@ export default function UploadPage() {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      setFiles(Array.from(e.target.files));
+      const newFiles = Array.from(e.target.files);
+      // Acumular en vez de reemplazar: si el usuario abre el selector varias veces
+      // (en lugar de elegir todos los PDFs de una vez con Ctrl/Cmd+clic), antes se
+      // perdía en silencio la selección anterior.
+      setFiles((prev) => {
+        const combined = [...prev, ...newFiles];
+        const seen = new Set<string>();
+        return combined.filter((file) => {
+          const key = `${file.name}-${file.size}-${file.lastModified}`;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+      });
       setError('');
     }
+    // Permite volver a seleccionar el mismo archivo si se quita y se re-añade.
+    e.target.value = '';
+  };
+
+  const handleRemoveFile = (index: number) => {
+    setFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleUpload = async (e: React.FormEvent) => {
@@ -126,9 +145,21 @@ export default function UploadPage() {
               }} 
             />
             {files.length > 0 && (
-              <p style={{ marginTop: '1rem', fontSize: '0.9rem', fontWeight: 600, color: 'var(--primary)' }}>
-                ✨ {files.length} archivo{files.length > 1 ? 's' : ''} listo{files.length > 1 ? 's' : ''} para analizar
-              </p>
+              <div style={{ marginTop: '1rem', textAlign: 'left' }}>
+                <p style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--primary)', marginBottom: '0.5rem' }}>
+                  ✨ {files.length} archivo{files.length > 1 ? 's' : ''} listo{files.length > 1 ? 's' : ''} para analizar
+                </p>
+                <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                  {files.map((file, idx) => (
+                    <li key={`${file.name}-${file.size}-${file.lastModified}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem', padding: '0.25rem 0' }}>
+                      <span>{file.name}</span>
+                      <button type="button" onClick={() => handleRemoveFile(idx)} style={{ background: 'none', border: 'none', color: 'var(--error)', cursor: 'pointer', fontWeight: 700 }}>
+                        ✕
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             )}
           </div>
           <button type="submit" className="btn btn-primary" style={{ width: '100%', padding: '1rem' }} disabled={files.length === 0 || loading}>
