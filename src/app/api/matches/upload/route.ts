@@ -21,17 +21,27 @@ export async function POST(req: Request) {
     const allMatchesArrays = [];
     for (let index = 0; index < files.length; index++) {
       const file = files[index];
+      const buffer = Buffer.from(await file.arrayBuffer());
+      console.log(`Procesando archivo ${index + 1}/${files.length}: ${file.name}`);
       try {
-        console.log(`Procesando archivo ${index + 1}/${files.length}: ${file.name}`);
-        const buffer = Buffer.from(await file.arrayBuffer());
         const matches = await parseDesignationPdf(buffer);
         console.log(`Archivo ${file.name} procesado: ${matches.length} partido(s) encontrado(s)`);
         allMatchesArrays.push(matches);
       } catch (error) {
         const err = error as Error;
-        console.error(`Error procesando ${file.name}:`, err.message);
-        // Retornar array vacío si un archivo falla, para no interrumpir el proceso
-        allMatchesArrays.push([]);
+        console.error(`Error procesando ${file.name} (intento 1):`, err.stack || err.message);
+        // El fallo observado en producción es intermitente (el mismo PDF a veces
+        // falla y a veces no dentro del mismo proceso), así que reintentamos una
+        // vez antes de darlo por perdido.
+        try {
+          const matches = await parseDesignationPdf(buffer);
+          console.log(`Archivo ${file.name} procesado en el reintento: ${matches.length} partido(s) encontrado(s)`);
+          allMatchesArrays.push(matches);
+        } catch (retryError) {
+          const retryErr = retryError as Error;
+          console.error(`Error procesando ${file.name} (intento 2, definitivo):`, retryErr.stack || retryErr.message);
+          allMatchesArrays.push([]);
+        }
       }
     }
     // Combinar todos los arrays de matches en uno solo
