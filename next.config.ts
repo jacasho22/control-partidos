@@ -17,6 +17,13 @@ const nextConfig: NextConfig = {
   // externo, Next.js lo deja tal cual en node_modules (incluyendo pdf.worker.mjs)
   // y lo hace `require`/`import` en tiempo de ejecución en vez de empaquetarlo.
   serverExternalPackages: ['pdfjs-dist'],
+  // serverExternalPackages evita que se empaquete pdfjs-dist, pero el rastreo de
+  // archivos de Vercel (@vercel/nft) no detecta por sí solo el `import()` dinámico
+  // con el que pdfjs-dist carga su worker (ver pdfReader.ts), así que el archivo
+  // del worker nunca llegaba a subirse con la función serverless. Se incluye a mano.
+  outputFileTracingIncludes: {
+    '/api/matches/upload': ['./node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs'],
+  },
 };
 
 export default withPWA(nextConfig);

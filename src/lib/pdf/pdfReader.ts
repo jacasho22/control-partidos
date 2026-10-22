@@ -6,6 +6,18 @@
 // regulares que detectan partidos) como las posiciones de texto y los rectángulos
 // rellenos (para detectar colores de equipación dibujados como cuadrado en vez de
 // texto), evitando cargar la librería dos veces por PDF.
+//
+// pdfjs-dist, al no correr en un Worker real, carga su propio "fake worker" con un
+// `import()` dinámico de una ruta RELATIVA ("./pdf.worker.mjs"). En el bundle de
+// Vercel esa ruta relativa ya no apunta a ningún archivo real y falla con "Setting
+// up fake worker failed: Cannot find module...". Se evita resolviendo nosotros
+// mismos la ruta ABSOLUTA real del archivo en node_modules (vía require.resolve) y
+// pasándosela a pdfjs-dist, en vez de dejar que adivine la ruta relativa.
+
+import { createRequire } from 'module';
+import { pathToFileURL } from 'url';
+
+const nodeRequire = createRequire(import.meta.url);
 
 export interface TextItem {
   str: string;
@@ -35,6 +47,7 @@ export interface PdfData {
 interface PdfJsModule {
   getDocument: (params: { data: Uint8Array; useSystemFonts: boolean }) => { promise: Promise<PdfDocument> };
   OPS: Record<string, number>;
+  GlobalWorkerOptions: { workerSrc: string };
 }
 interface PdfDocument {
   numPages: number;
@@ -102,6 +115,10 @@ function reconstructPageText(texts: TextItem[]): string {
 
 export async function readPdf(buffer: Buffer): Promise<PdfData> {
   const pdfjsLib = (await import('pdfjs-dist/legacy/build/pdf.mjs')) as unknown as PdfJsModule;
+  if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
+    const workerPath = nodeRequire.resolve('pdfjs-dist/legacy/build/pdf.worker.mjs');
+    pdfjsLib.GlobalWorkerOptions.workerSrc = pathToFileURL(workerPath).href;
+  }
   const data = new Uint8Array(buffer);
   const loadingTask = pdfjsLib.getDocument({ data, useSystemFonts: true });
   const doc = await loadingTask.promise;
