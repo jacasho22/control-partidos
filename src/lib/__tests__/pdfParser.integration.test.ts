@@ -12,22 +12,25 @@ const fixturesDir = path.join(__dirname, 'fixtures');
 // Solo corren localmente si el desarrollador los coloca en fixtures/; en CI se saltan.
 const hasFixtures = fs.existsSync(fixturesDir);
 
-describe.skipIf(!hasFixtures)('parseDesignationPdf - swatch color fallback (real PDFs)', () => {
-  it('fills visitorColor from the swatch when there is no color text', async () => {
+describe.skipIf(!hasFixtures)('parseDesignationPdf - swatch color fallback (real PDFs, disabled)', () => {
+  // El color por "cuadrado" (pdfjs-dist) se desactivó: corrompía el parseo de otros
+  // PDFs en la misma instancia del servidor (ver nota en pdfParser.ts). Cuando el
+  // color viene solo como cuadrado y no como texto, ahora queda sin definir.
+  it('leaves visitorColor undefined when there is no color text (swatch disabled)', async () => {
     const buf = fs.readFileSync(path.join(fixturesDir, '2026-10-18_T_94.pdf'));
     const matches = await parseDesignationPdf(buf);
     const match = matches.find((m) => m.id === '64342');
     expect(match).toBeDefined();
     expect(match?.localColor).toBe('NEGRO/NEGRO');
-    expect(match?.visitorColor).toBe('NARANJA');
+    expect(match?.visitorColor).toBeUndefined();
   });
 
-  it('fills localColor from the swatch when there is no color text', async () => {
+  it('leaves localColor undefined when there is no color text (swatch disabled)', async () => {
     const buf = fs.readFileSync(path.join(fixturesDir, '2026-10-17_T_326.pdf'));
     const matches = await parseDesignationPdf(buf);
     const match = matches.find((m) => m.id === '67066');
     expect(match).toBeDefined();
-    expect(match?.localColor).toBe('AMARILLO');
+    expect(match?.localColor).toBeUndefined();
     expect(match?.visitorColor).toBe('NEGRO/BLANCO');
   });
 

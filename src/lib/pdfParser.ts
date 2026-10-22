@@ -1,6 +1,5 @@
 // @ts-expect-error - no type definitions for this internal entry point
 import pdf from 'pdf-parse/lib/pdf-parse.js';
-import { extractSwatchColors } from './pdfSwatchColors';
 
 export interface MatchData {
   id: string;
@@ -34,15 +33,13 @@ export async function parseDesignationPdf(buffer: Buffer): Promise<MatchData[]> 
   const text = data.text;
   const matches: MatchData[] = [];
 
-  // Algunos equipos no escriben el color en texto, solo un cuadrado de color en el PDF.
-  // Si esto falla por cualquier motivo, seguimos sin colores de swatch (no bloquea el parseo).
-  let swatchColorsByMatch: Record<string, { localColor?: string; visitorColor?: string }> = {};
-  try {
-    swatchColorsByMatch = await extractSwatchColors(buffer);
-  } catch (error) {
-    console.error('No se pudieron extraer colores por swatch:', error);
-  }
-  
+  // La extracción de color por "cuadrado" (pdfjs-dist) se desactivó: su propio fallo
+  // interno de configuración del worker dejaba estado global corrupto en el proceso
+  // del servidor que hacía fallar intermitentemente el parseo de PDFs *posteriores*
+  // en la misma instancia (error "Invalid PDF structure" en archivos perfectamente
+  // válidos). Detectar bien los partidos es más importante que pintar ese color, así
+  // que de momento solo se usa el color en texto (extractEquipmentColors).
+
   // El PDF suele tener bloques que empiezan con el nombre de los equipos,
   // seguido de la fecha y luego "DATOS DEL PARTIDO [ID]"
   const parts = text.split(/DATOS DEL PARTIDO\s+(\d+)/);
@@ -130,11 +127,8 @@ export async function parseDesignationPdf(buffer: Buffer): Promise<MatchData[]> 
       city = venueMatch[3].trim();
     }
 
-    // Extraer Colores (texto primero; si falta, caer al color dibujado como cuadrado)
+    // Extraer Colores (solo texto; ver nota arriba sobre el color por cuadrado desactivado)
     const colors = extractEquipmentColors(contentAfter);
-    const swatchColors = swatchColorsByMatch[matchId];
-    if (!colors.localColor && swatchColors?.localColor) colors.localColor = swatchColors.localColor;
-    if (!colors.visitorColor && swatchColors?.visitorColor) colors.visitorColor = swatchColors.visitorColor;
 
     // Extraer Compañeros (EQUIPO ARBITRAL)
     const partners: PartnerData[] = [];
