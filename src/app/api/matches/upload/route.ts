@@ -13,23 +13,27 @@ export async function POST(req: Request) {
 
     console.log(`Procesando ${files.length} archivo(s)...`);
 
-    // Procesar todos los PDFs en paralelo
-    const matchesPromises = files.map(async (file, index) => {
+    // pdf-parse/pdfjs-dist usan estado global (configuración del worker, módulos
+    // cacheados) que no es seguro entre invocaciones concurrentes: procesar varios
+    // PDFs a la vez con Promise.all provocaba fallos intermitentes de "Invalid PDF
+    // structure" en algunos de ellos (el mismo archivo funcionaba bien si se subía
+    // solo). Se procesan uno a uno para evitar la condición de carrera.
+    const allMatchesArrays = [];
+    for (let index = 0; index < files.length; index++) {
+      const file = files[index];
       try {
         console.log(`Procesando archivo ${index + 1}/${files.length}: ${file.name}`);
         const buffer = Buffer.from(await file.arrayBuffer());
         const matches = await parseDesignationPdf(buffer);
         console.log(`Archivo ${file.name} procesado: ${matches.length} partido(s) encontrado(s)`);
-        return matches;
+        allMatchesArrays.push(matches);
       } catch (error) {
         const err = error as Error;
         console.error(`Error procesando ${file.name}:`, err.message);
         // Retornar array vacío si un archivo falla, para no interrumpir el proceso
-        return [];
+        allMatchesArrays.push([]);
       }
-    });
-
-    const allMatchesArrays = await Promise.all(matchesPromises);
+    }
     // Combinar todos los arrays de matches en uno solo
     const allMatches = allMatchesArrays.flat();
 
